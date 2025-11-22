@@ -7,14 +7,52 @@ import { HistoryView } from './components/HistoryView';
 
 function App() {
   // State
+  // Initialize vehicles with a merge strategy:
+  // 1. Load saved data from localStorage (simulated database).
+  // 2. Compare with INITIAL_VEHICLES (code updates).
+  // 3. Preserve user-edited state (location, status) for existing vehicles.
+  // 4. Add new vehicles that were added to the code but aren't in storage yet.
   const [vehicles, setVehicles] = useState<Vehicle[]>(() => {
-    const saved = localStorage.getItem('metro_vehicles');
-    return saved ? JSON.parse(saved) : INITIAL_VEHICLES;
+    try {
+      const saved = localStorage.getItem('metro_vehicles');
+      if (!saved) return INITIAL_VEHICLES;
+
+      const savedVehicles: Vehicle[] = JSON.parse(saved);
+      
+      return INITIAL_VEHICLES.map(initVehicle => {
+        // Check if this vehicle exists in our saved database
+        const savedVehicle = savedVehicles.find(v => v.id === initVehicle.id);
+        
+        if (savedVehicle) {
+          // If it exists, use the saved state (location, status, etc.)
+          // but fallback to initial config if fields are missing (migration safe)
+          return {
+            ...initVehicle,
+            lastLocation: savedVehicle.lastLocation,
+            currentLocation: savedVehicle.currentLocation,
+            operator: savedVehicle.operator,
+            lastUpdate: savedVehicle.lastUpdate,
+            status: savedVehicle.status,
+            registration: savedVehicle.registration || initVehicle.registration,
+          };
+        }
+        // If it's a new vehicle added in code, use the initial definition
+        return initVehicle;
+      });
+    } catch (e) {
+      console.error("Erro ao carregar banco de dados local:", e);
+      return INITIAL_VEHICLES;
+    }
   });
   
   const [history, setHistory] = useState<HistoryLog[]>(() => {
-    const saved = localStorage.getItem('metro_history');
-    return saved ? JSON.parse(saved) : [];
+    try {
+      const saved = localStorage.getItem('metro_history');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      console.error("Erro ao carregar histórico:", e);
+      return [];
+    }
   });
 
   const [currentUser, setCurrentUser] = useState<string>('Sistema');
@@ -26,7 +64,7 @@ function App() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterLocation, setFilterLocation] = useState<string>('ALL');
 
-  // Persistence
+  // Persistence: Save to "Database" (LocalStorage) on every change
   useEffect(() => {
     localStorage.setItem('metro_vehicles', JSON.stringify(vehicles));
   }, [vehicles]);
@@ -152,10 +190,7 @@ function App() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-4">
           <div className="flex items-center gap-4 md:gap-6 w-full md:w-auto">
             <MetroLogo className="shrink-0" />
-            <h1 className="text-white text-sm sm:text-base md:text-lg font-medium tracking-wide leading-tight opacity-90 hidden sm:block border-l border-white/30 pl-6 h-10 flex items-center">
-              Sistema de Localização de Veículos de Via - SLVV
-            </h1>
-            {/* Mobile-only title (simplified) if needed, or just show the logo */}
+            {/* Removed subtitle title to focus on Logo which contains 'METRÔ' */}
           </div>
           <div className="flex items-center space-x-4 text-white w-full md:w-auto justify-end">
             <button 
