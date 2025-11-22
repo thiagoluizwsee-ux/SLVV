@@ -1,21 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { MetroLogo } from './components/MetroLogo';
-import { INITIAL_VEHICLES, AVAILABLE_LOCATIONS } from './constants';
-import { Vehicle, LocationEnum, VehicleStatus, HistoryLog } from './types';
+import { AVAILABLE_LOCATIONS } from './constants';
+import { Vehicle, LocationEnum, VehicleStatus, HistoryLog, DataMode } from './types';
 import { UpdateModal } from './components/UpdateModal';
 import { HistoryView } from './components/HistoryView';
+import { initDataService, getVehicles, getHistory, saveVehicle, addHistoryLog } from './services/dataService';
 
 function App() {
   // State
-  const [vehicles, setVehicles] = useState<Vehicle[]>(() => {
-    const saved = localStorage.getItem('metro_vehicles');
-    return saved ? JSON.parse(saved) : INITIAL_VEHICLES;
-  });
-  
-  const [history, setHistory] = useState<HistoryLog[]>(() => {
-    const saved = localStorage.getItem('metro_history');
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [history, setHistory] = useState<HistoryLog[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [connectionMode, setConnectionMode] = useState<DataMode>('LOCAL');
 
   const [currentUser, setCurrentUser] = useState<string>('Sistema');
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
@@ -26,48 +22,77 @@ function App() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterLocation, setFilterLocation] = useState<string>('ALL');
 
-  // Persistence
+  // Initialization
   useEffect(() => {
-    localStorage.setItem('metro_vehicles', JSON.stringify(vehicles));
-  }, [vehicles]);
+    const mode = initDataService();
+    setConnectionMode(mode);
+    
+    const fetchData = async () => {
+      setLoading(true);
+      const v = await getVehicles();
+      setVehicles(v);
+      const h = await getHistory();
+      setHistory(h);
+      setLoading(false);
+    };
 
-  useEffect(() => {
-    localStorage.setItem('metro_history', JSON.stringify(history));
-  }, [history]);
+    fetchData();
+    
+    // Optional: Poll for updates every 30 seconds if in cloud mode
+    const interval = setInterval(() => {
+        if (mode === 'CLOUD') {
+             fetchData();
+        }
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   // Actions
-  const handleUpdateLocation = (vehicleId: string, newLocation: LocationEnum, operator: string, registration: string) => {
-    setVehicles(prev => prev.map(v => {
-      if (v.id === vehicleId) {
-        const log: HistoryLog = {
-          id: crypto.randomUUID(),
-          vehicleId: v.id,
-          previousLocation: v.currentLocation,
-          newLocation: newLocation,
-          operator,
-          timestamp: new Date().toISOString(),
-          actionType: 'LOCATION_UPDATE',
-          details: `Registro: ${registration}`,
-          registration: registration
-        };
-        setHistory(h => [...h, log]);
-        
-        return {
-          ...v,
-          lastLocation: v.currentLocation,
-          currentLocation: newLocation,
-          operator,
-          registration,
-          lastUpdate: new Date().toISOString(),
-        };
-      }
-      return v;
-    }));
+  const handleUpdateLocation = async (vehicleId: string, newLocation: LocationEnum, operator: string, registration: string) => {
+    // Optimistic Update
+    const updatedVehicles = vehicles.map(v => {
+        if (v.id === vehicleId) {
+            return {
+                ...v,
+                lastLocation: v.currentLocation,
+                currentLocation: newLocation,
+                operator,
+                registration,
+                lastUpdate: new Date().toISOString(),
+            };
+        }
+        return v;
+    });
+    
+    const targetVehicle = updatedVehicles.find(v => v.id === vehicleId);
+    
+    setVehicles(updatedVehicles);
     setSelectedVehicle(null);
+
+    if (targetVehicle) {
+        await saveVehicle(targetVehicle);
+        const oldV = vehicles.find(v => v.id === vehicleId);
+
+        const log: HistoryLog = {
+            id: crypto.randomUUID(),
+            vehicleId: vehicleId,
+            previousLocation: oldV?.currentLocation || null,
+            newLocation: newLocation,
+            operator,
+            timestamp: new Date().toISOString(),
+            actionType: 'LOCATION_UPDATE',
+            details: `Registro: ${registration}`,
+            registration: registration
+        };
+        
+        setHistory(prev => [...prev, log]);
+        await addHistoryLog(log);
+    }
   };
 
-  const toggleStatus = (vehicleId: string) => {
-    setVehicles(prev => prev.map(v => {
+  const toggleStatus = async (vehicleId: string) => {
+     const updatedVehicles = vehicles.map(v => {
       if (v.id === vehicleId) {
         const isEnteringMaintenance = v.status === VehicleStatus.OPERATION;
         const newStatus = isEnteringMaintenance 
@@ -76,25 +101,11 @@ function App() {
 
         let newLocation = v.currentLocation;
         let lastLocation = v.lastLocation;
-        let details = `Alterado para ${newStatus}`;
-
+        
         if (isEnteringMaintenance) {
           lastLocation = v.currentLocation;
           newLocation = LocationEnum.OFICINA;
-          details += ` (Movido para ${LocationEnum.OFICINA})`;
         }
-
-        const log: HistoryLog = {
-          id: crypto.randomUUID(),
-          vehicleId: v.id,
-          previousLocation: v.currentLocation,
-          newLocation: newLocation,
-          operator: currentUser, 
-          timestamp: new Date().toISOString(),
-          actionType: 'STATUS_CHANGE',
-          details: details
-        };
-        setHistory(h => [...h, log]);
 
         return {
           ...v,
@@ -105,11 +116,38 @@ function App() {
         };
       }
       return v;
-    }));
+    });
+
+    const targetVehicle = updatedVehicles.find(v => v.id === vehicleId);
+    const oldVehicle = vehicles.find(v => v.id === vehicleId);
+
+    setVehicles(updatedVehicles);
+
+    if (targetVehicle && oldVehicle) {
+        await saveVehicle(targetVehicle);
+
+        let details = `Alterado para ${targetVehicle.status}`;
+        if (targetVehicle.status === VehicleStatus.MAINTENANCE) {
+             details += ` (Movido para ${LocationEnum.OFICINA})`;
+        }
+
+        const log: HistoryLog = {
+          id: crypto.randomUUID(),
+          vehicleId: targetVehicle.id,
+          previousLocation: oldVehicle.currentLocation,
+          newLocation: targetVehicle.currentLocation,
+          operator: currentUser, 
+          timestamp: new Date().toISOString(),
+          actionType: 'STATUS_CHANGE',
+          details: details
+        };
+        
+        setHistory(prev => [...prev, log]);
+        await addHistoryLog(log);
+    }
   };
 
   // Helper to normalize text for fuzzy search
-  // Removes accents, special characters, spaces, and hyphens, and converts to lowercase
   const normalizeText = (text: string) => {
     return text
       .toLowerCase()
@@ -134,16 +172,22 @@ function App() {
       return matchesSearch && matchesFilter;
     })
     .sort((a, b) => {
-      // Prioritize vehicles starting with 'T' (e.g., TM, TV)
       const aStartsWithT = a.id.startsWith('T');
       const bStartsWithT = b.id.startsWith('T');
 
       if (aStartsWithT && !bStartsWithT) return -1;
       if (!aStartsWithT && bStartsWithT) return 1;
 
-      // Default alphanumeric sort
       return a.id.localeCompare(b.id, undefined, { numeric: true });
     });
+
+  if (loading) {
+      return (
+          <div className="min-h-screen flex items-center justify-center bg-gray-100">
+              <div className="text-metro-blue font-bold text-xl animate-pulse">Carregando Frota...</div>
+          </div>
+      )
+  }
 
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col">
@@ -155,7 +199,6 @@ function App() {
             <h1 className="text-white text-sm sm:text-base md:text-lg font-medium tracking-wide leading-tight opacity-90 hidden sm:block border-l border-white/30 pl-6 h-10 flex items-center">
               Sistema de Localização de Veículos de Via - SLVV
             </h1>
-            {/* Mobile-only title (simplified) if needed, or just show the logo */}
           </div>
           <div className="flex items-center space-x-4 text-white w-full md:w-auto justify-end">
             <button 
@@ -311,9 +354,15 @@ function App() {
       {/* Footer */}
       <footer className="bg-white border-t border-gray-200 mt-auto py-6">
         <div className="max-w-7xl mx-auto px-4 text-center">
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-gray-500 mb-2">
                 © 2025 Companhia do Metropolitano de São Paulo - Metrô
             </p>
+            <div className="flex justify-center items-center text-xs text-gray-400 gap-2">
+              <span className={`w-2 h-2 rounded-full ${connectionMode === 'CLOUD' ? 'bg-green-500' : 'bg-orange-400'}`}></span>
+              <span>
+                {connectionMode === 'CLOUD' ? 'Conectado à Nuvem (Sincronizado)' : 'Modo Local (Apenas neste dispositivo)'}
+              </span>
+            </div>
         </div>
       </footer>
 

@@ -9,6 +9,8 @@ export enum LocationEnum {
   PTI = 'PTI',
   RAMAL_5 = 'Ramal 5',
   RAMAL_6 = 'Ramal 6',
+  TM_02_LUZ = 'TM 02 de LUZ',
+  TM_02_ANR = 'TM 02 de ANR',
   OFICINA = 'Oficina',
 }
 
@@ -38,3 +40,14 @@ export interface HistoryLog {
   details?: string;
   registration?: string;
 }
+
+// Supabase Types for Global Window Object
+declare global {
+  interface Window {
+    supabase: {
+      createClient: (url: string, key: string) => any;
+    };
+  }
+}
+
+export type DataMode = 'LOCAL' | 'CLOUD';
