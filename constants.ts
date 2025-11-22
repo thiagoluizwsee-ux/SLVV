@@ -1,5 +1,13 @@
 import { LocationEnum, Vehicle, VehicleStatus } from './types';
 
+// --- CONFIGURAÇÃO DO BANCO DE DADOS EM NUVEM (Supabase) ---
+// Para sincronizar entre dispositivos, crie um projeto gratuito em https://supabase.com
+// e cole suas credenciais abaixo.
+export const SUPABASE_CONFIG = {
+  url: '', // Ex: https://xyz.supabase.co
+  key: ''  // Ex: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+};
+
 export const AVAILABLE_LOCATIONS = [
   LocationEnum.PAT,
   LocationEnum.ETC_5,
