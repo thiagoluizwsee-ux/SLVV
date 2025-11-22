@@ -3,6 +3,7 @@ import { LocationEnum, Vehicle, VehicleStatus } from './types';
 export const AVAILABLE_LOCATIONS = [
   LocationEnum.PAT,
   LocationEnum.ETC_5,
+  LocationEnum.ETC_6,
   LocationEnum.ETC_7,
   LocationEnum.ECL_3,
   LocationEnum.ECL_4,

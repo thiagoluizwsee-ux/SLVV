@@ -1,6 +1,7 @@
 export enum LocationEnum {
   PAT = 'PAT',
   ETC_5 = 'ETC 5',
+  ETC_6 = 'ETC 6',
   ETC_7 = 'ETC 7',
   ECL_3 = 'ECL 3',
   ECL_4 = 'ECL 4',
