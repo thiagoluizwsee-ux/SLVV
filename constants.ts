@@ -139,4 +139,13 @@ export const INITIAL_VEHICLES: Vehicle[] = [
     status: VehicleStatus.OPERATION,
     registration: 'REG-014',
   },
+  {
+    id: 'VF 06',
+    lastLocation: null,
+    currentLocation: LocationEnum.PAT,
+    operator: 'Sistema',
+    lastUpdate: new Date().toISOString(),
+    status: VehicleStatus.OPERATION,
+    registration: 'REG-015',
+  },
 ];
