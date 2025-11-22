@@ -27,21 +27,31 @@ function App() {
     const mode = initDataService();
     setConnectionMode(mode);
     
-    const fetchData = async () => {
-      setLoading(true);
+    const fetchData = async (isBackgroundUpdate = false) => {
+      // Only show full screen loader on first load, not during background polling
+      if (!isBackgroundUpdate) {
+        setLoading(true);
+      }
+      
       const v = await getVehicles();
-      setVehicles(v);
+      // Filter out ME 12 explicitly if it exists in storage
+      setVehicles(v.filter(veh => veh.id !== 'ME 12'));
       const h = await getHistory();
       setHistory(h);
-      setLoading(false);
+
+      if (!isBackgroundUpdate) {
+        setLoading(false);
+      }
     };
 
-    fetchData();
+    // Initial load
+    fetchData(false);
     
-    // Optional: Poll for updates every 30 seconds if in cloud mode
+    // Poll for updates every 30 seconds if in cloud mode
     const interval = setInterval(() => {
         if (mode === 'CLOUD') {
-             fetchData();
+             // Pass true to indicate this is a background update (no loading screen)
+             fetchData(true);
         }
     }, 30000);
 
