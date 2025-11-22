@@ -1,17 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { MetroLogo } from './components/MetroLogo';
-import { AVAILABLE_LOCATIONS } from './constants';
-import { Vehicle, LocationEnum, VehicleStatus, HistoryLog, ConnectionMode } from './types';
+import { INITIAL_VEHICLES, AVAILABLE_LOCATIONS } from './constants';
+import { Vehicle, LocationEnum, VehicleStatus, HistoryLog } from './types';
 import { UpdateModal } from './components/UpdateModal';
 import { HistoryView } from './components/HistoryView';
-import * as dataService from './services/dataService';
 
 function App() {
   // State
-  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
-  const [history, setHistory] = useState<HistoryLog[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [connectionMode, setConnectionMode] = useState<ConnectionMode>('LOCAL');
+  const [vehicles, setVehicles] = useState<Vehicle[]>(() => {
+    const saved = localStorage.getItem('metro_vehicles');
+    return saved ? JSON.parse(saved) : INITIAL_VEHICLES;
+  });
+  
+  const [history, setHistory] = useState<HistoryLog[]>(() => {
+    const saved = localStorage.getItem('metro_history');
+    return saved ? JSON.parse(saved) : [];
+  });
 
   const [currentUser, setCurrentUser] = useState<string>('Sistema');
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
@@ -22,108 +26,90 @@ function App() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterLocation, setFilterLocation] = useState<string>('ALL');
 
-  // Initial Data Load
+  // Persistence
   useEffect(() => {
-    const init = async () => {
-      const mode = await dataService.initDataService();
-      setConnectionMode(mode);
-      await loadData();
-      setLoading(false);
-    };
-    init();
-  }, []);
+    localStorage.setItem('metro_vehicles', JSON.stringify(vehicles));
+  }, [vehicles]);
 
-  // Function to reload data (can be called to sync)
-  const loadData = async () => {
-    const v = await dataService.getVehicles();
-    const h = await dataService.getHistory();
-    setVehicles(v);
-    setHistory(h);
-  };
-
-  // Helper to update vehicle list state AND persist to DB
-  const updateVehicleAndPersist = async (updatedVehicle: Vehicle, newLog?: HistoryLog) => {
-     // Optimistic UI update
-     setVehicles(prev => prev.map(v => v.id === updatedVehicle.id ? updatedVehicle : v));
-     if (newLog) setHistory(prev => [...prev, newLog]);
-
-     // Persist
-     await dataService.saveVehicle(updatedVehicle);
-     if (newLog) await dataService.saveHistoryLog(newLog);
-  };
+  useEffect(() => {
+    localStorage.setItem('metro_history', JSON.stringify(history));
+  }, [history]);
 
   // Actions
   const handleUpdateLocation = (vehicleId: string, newLocation: LocationEnum, operator: string, registration: string) => {
-    const vehicle = vehicles.find(v => v.id === vehicleId);
-    if (!vehicle) return;
-
-    const updatedVehicle: Vehicle = {
-      ...vehicle,
-      lastLocation: vehicle.currentLocation,
-      currentLocation: newLocation,
-      operator,
-      registration,
-      lastUpdate: new Date().toISOString(),
-    };
-
-    const log: HistoryLog = {
-      id: crypto.randomUUID(),
-      vehicleId: vehicle.id,
-      previousLocation: vehicle.currentLocation,
-      newLocation: newLocation,
-      operator,
-      timestamp: new Date().toISOString(),
-      actionType: 'LOCATION_UPDATE',
-      details: `Registro: ${registration}`,
-      registration: registration
-    };
-
-    updateVehicleAndPersist(updatedVehicle, log);
+    setVehicles(prev => prev.map(v => {
+      if (v.id === vehicleId) {
+        const log: HistoryLog = {
+          id: crypto.randomUUID(),
+          vehicleId: v.id,
+          previousLocation: v.currentLocation,
+          newLocation: newLocation,
+          operator,
+          timestamp: new Date().toISOString(),
+          actionType: 'LOCATION_UPDATE',
+          details: `Registro: ${registration}`,
+          registration: registration
+        };
+        setHistory(h => [...h, log]);
+        
+        return {
+          ...v,
+          lastLocation: v.currentLocation,
+          currentLocation: newLocation,
+          operator,
+          registration,
+          lastUpdate: new Date().toISOString(),
+        };
+      }
+      return v;
+    }));
     setSelectedVehicle(null);
   };
 
   const toggleStatus = (vehicleId: string) => {
-    const vehicle = vehicles.find(v => v.id === vehicleId);
-    if (!vehicle) return;
+    setVehicles(prev => prev.map(v => {
+      if (v.id === vehicleId) {
+        const isEnteringMaintenance = v.status === VehicleStatus.OPERATION;
+        const newStatus = isEnteringMaintenance 
+          ? VehicleStatus.MAINTENANCE 
+          : VehicleStatus.OPERATION;
 
-    const isEnteringMaintenance = vehicle.status === VehicleStatus.OPERATION;
-    const newStatus = isEnteringMaintenance 
-      ? VehicleStatus.MAINTENANCE 
-      : VehicleStatus.OPERATION;
+        let newLocation = v.currentLocation;
+        let lastLocation = v.lastLocation;
+        let details = `Alterado para ${newStatus}`;
 
-    let newLocation = vehicle.currentLocation;
-    let lastLocation = vehicle.lastLocation;
-    let details = `Alterado para ${newStatus}`;
+        if (isEnteringMaintenance) {
+          lastLocation = v.currentLocation;
+          newLocation = LocationEnum.OFICINA;
+          details += ` (Movido para ${LocationEnum.OFICINA})`;
+        }
 
-    if (isEnteringMaintenance) {
-      lastLocation = vehicle.currentLocation;
-      newLocation = LocationEnum.OFICINA;
-      details += ` (Movido para ${LocationEnum.OFICINA})`;
-    }
+        const log: HistoryLog = {
+          id: crypto.randomUUID(),
+          vehicleId: v.id,
+          previousLocation: v.currentLocation,
+          newLocation: newLocation,
+          operator: currentUser, 
+          timestamp: new Date().toISOString(),
+          actionType: 'STATUS_CHANGE',
+          details: details
+        };
+        setHistory(h => [...h, log]);
 
-    const updatedVehicle: Vehicle = {
-      ...vehicle,
-      status: newStatus,
-      currentLocation: newLocation,
-      lastLocation: lastLocation,
-      lastUpdate: new Date().toISOString()
-    };
-
-    const log: HistoryLog = {
-      id: crypto.randomUUID(),
-      vehicleId: vehicle.id,
-      previousLocation: vehicle.currentLocation,
-      newLocation: newLocation,
-      operator: currentUser, 
-      timestamp: new Date().toISOString(),
-      actionType: 'STATUS_CHANGE',
-      details: details
-    };
-
-    updateVehicleAndPersist(updatedVehicle, log);
+        return {
+          ...v,
+          status: newStatus,
+          currentLocation: newLocation,
+          lastLocation: lastLocation,
+          lastUpdate: new Date().toISOString()
+        };
+      }
+      return v;
+    }));
   };
 
   // Helper to normalize text for fuzzy search
+  // Removes accents, special characters, spaces, and hyphens, and converts to lowercase
   const normalizeText = (text: string) => {
     return text
       .toLowerCase()
@@ -148,25 +134,16 @@ function App() {
       return matchesSearch && matchesFilter;
     })
     .sort((a, b) => {
+      // Prioritize vehicles starting with 'T' (e.g., TM, TV)
       const aStartsWithT = a.id.startsWith('T');
       const bStartsWithT = b.id.startsWith('T');
 
       if (aStartsWithT && !bStartsWithT) return -1;
       if (!aStartsWithT && bStartsWithT) return 1;
 
+      // Default alphanumeric sort
       return a.id.localeCompare(b.id, undefined, { numeric: true });
     });
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="text-metro-blue font-bold text-xl flex flex-col items-center">
-            <div className="w-12 h-12 border-4 border-metro-blue border-t-transparent rounded-full animate-spin mb-4"></div>
-            Carregando Sistema...
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col">
@@ -178,6 +155,7 @@ function App() {
             <h1 className="text-white text-sm sm:text-base md:text-lg font-medium tracking-wide leading-tight opacity-90 hidden sm:block border-l border-white/30 pl-6 h-10 flex items-center">
               Sistema de Localização de Veículos de Via - SLVV
             </h1>
+            {/* Mobile-only title (simplified) if needed, or just show the logo */}
           </div>
           <div className="flex items-center space-x-4 text-white w-full md:w-auto justify-end">
             <button 
@@ -185,15 +163,6 @@ function App() {
               className="bg-white text-metro-blue px-4 py-2 rounded font-bold text-sm hover:bg-gray-100 transition shadow-sm w-full md:w-auto"
             >
               Histórico Geral
-            </button>
-            <button 
-              onClick={loadData}
-              className="p-2 text-white hover:bg-white/10 rounded-full transition"
-              title="Atualizar Dados"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
             </button>
           </div>
         </div>
@@ -340,14 +309,8 @@ function App() {
       </main>
 
       {/* Footer */}
-      <footer className="bg-white border-t border-gray-200 mt-auto py-4">
-        <div className="max-w-7xl mx-auto px-4 text-center space-y-2">
-            <div className="flex items-center justify-center gap-2 text-xs text-gray-400">
-              <span>Status do Banco de Dados:</span>
-              <span className={`font-bold ${connectionMode === 'CLOUD' ? 'text-green-600' : 'text-yellow-600'}`}>
-                {connectionMode === 'CLOUD' ? '● Nuvem (Sincronizado)' : '● Local (Apenas este dispositivo)'}
-              </span>
-            </div>
+      <footer className="bg-white border-t border-gray-200 mt-auto py-6">
+        <div className="max-w-7xl mx-auto px-4 text-center">
             <p className="text-sm text-gray-500">
                 © 2025 Companhia do Metropolitano de São Paulo - Metrô
             </p>

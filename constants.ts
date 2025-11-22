@@ -1,15 +1,5 @@
 import { LocationEnum, Vehicle, VehicleStatus } from './types';
 
-// ==================================================================================
-// CONFIGURAÇÃO DO BANCO DE DADOS (SUPABASE)
-// Para salvar em vários dispositivos, crie um projeto em https://supabase.com
-// e cole a URL e a API Key (anon public) abaixo.
-// ==================================================================================
-export const SUPABASE_CONFIG = {
-  url: 'https://rxhvdyxftgjzieaieurt.supabase.co', // Ex: https://xyz.supabase.co
-  key: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ4aHZkeXhmdGdqemllYWlldXJ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4Mjk3ODUsImV4cCI6MjA3OTQwNTc4NX0.zPlXIXG64BkENfq-34t1MKtPzqZyMTIWH11GJQeeexE', // Ex: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-};
-
 export const AVAILABLE_LOCATIONS = [
   LocationEnum.PAT,
   LocationEnum.ETC_5,

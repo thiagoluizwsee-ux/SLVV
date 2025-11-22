@@ -38,14 +38,3 @@ export interface HistoryLog {
   details?: string;
   registration?: string;
 }
-
-// Global definition for Supabase loaded via Script tag
-declare global {
-  interface Window {
-    supabase: {
-      createClient: (url: string, key: string) => any;
-    };
-  }
-}
-
-export type ConnectionMode = 'CLOUD' | 'LOCAL';
