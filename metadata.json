@@ -1,0 +1,5 @@
+{
+  "name": "MetrôTrack SP",
+  "description": "Sistema de gestão de frota e localização de veículos para o Metrô de São Paulo, com análise de inteligência artificial.",
+  "requestFramePermissions": []
+}
