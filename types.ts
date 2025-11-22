@@ -6,6 +6,7 @@ export enum LocationEnum {
   ECL_3 = 'ECL 3',
   ECL_4 = 'ECL 4',
   PIT = 'PIT',
+  PTI = 'PTI',
   RAMAL_5 = 'Ramal 5',
   RAMAL_6 = 'Ramal 6',
   OFICINA = 'Oficina',

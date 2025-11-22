@@ -119,19 +119,31 @@ function App() {
   };
 
   // Filter Logic
-  const filteredVehicles = vehicles.filter(vehicle => {
-    const normalizedSearch = normalizeText(searchTerm);
-    const normalizedId = normalizeText(vehicle.id);
-    const normalizedLocation = normalizeText(vehicle.currentLocation);
-    
-    const matchesSearch = 
-      normalizedId.includes(normalizedSearch) || 
-      normalizedLocation.includes(normalizedSearch);
-    
-    const matchesFilter = filterLocation === 'ALL' || vehicle.currentLocation === filterLocation;
+  const filteredVehicles = vehicles
+    .filter(vehicle => {
+      const normalizedSearch = normalizeText(searchTerm);
+      const normalizedId = normalizeText(vehicle.id);
+      const normalizedLocation = normalizeText(vehicle.currentLocation);
+      
+      const matchesSearch = 
+        normalizedId.includes(normalizedSearch) || 
+        normalizedLocation.includes(normalizedSearch);
+      
+      const matchesFilter = filterLocation === 'ALL' || vehicle.currentLocation === filterLocation;
 
-    return matchesSearch && matchesFilter;
-  });
+      return matchesSearch && matchesFilter;
+    })
+    .sort((a, b) => {
+      // Prioritize vehicles starting with 'T' (e.g., TM, TV)
+      const aStartsWithT = a.id.startsWith('T');
+      const bStartsWithT = b.id.startsWith('T');
+
+      if (aStartsWithT && !bStartsWithT) return -1;
+      if (!aStartsWithT && bStartsWithT) return 1;
+
+      // Default alphanumeric sort
+      return a.id.localeCompare(b.id, undefined, { numeric: true });
+    });
 
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col">
