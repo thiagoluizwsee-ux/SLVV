@@ -4,14 +4,13 @@ import { AVAILABLE_LOCATIONS } from './constants';
 import { Vehicle, LocationEnum, VehicleStatus, HistoryLog, ConnectionMode } from './types';
 import { UpdateModal } from './components/UpdateModal';
 import { HistoryView } from './components/HistoryView';
-import * as db from './services/sqlService';
+import * as dataService from './services/dataService';
 
 function App() {
+  // State
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [history, setHistory] = useState<HistoryLog[]>([]);
-
-  // Loading State
-  const [isDbReady, setIsDbReady] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [connectionMode, setConnectionMode] = useState<ConnectionMode>('LOCAL');
 
   const [currentUser, setCurrentUser] = useState<string>('Sistema');
@@ -23,56 +22,50 @@ function App() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterLocation, setFilterLocation] = useState<string>('ALL');
 
-  // Initialize Database on Mount
+  // Initial Data Load
   useEffect(() => {
     const init = async () => {
-      try {
-        // Initialize DB (returns 'LOCAL' or 'CLOUD')
-        const mode = await db.initDatabase();
-        setConnectionMode(mode);
-        
-        await refreshData();
-        setIsDbReady(true);
-      } catch (error) {
-        console.error("Falha ao iniciar Banco de Dados:", error);
-      }
+      const mode = await dataService.initDataService();
+      setConnectionMode(mode);
+      await loadData();
+      setLoading(false);
     };
-    
-    // Wait for scripts to load
-    if (window.alasql) {
-      init();
-    } else {
-      const interval = setInterval(() => {
-        if (window.alasql) {
-          clearInterval(interval);
-          init();
-        }
-      }, 100);
-    }
+    init();
   }, []);
 
-  const refreshData = async () => {
-    const v = await db.getAllVehicles();
-    const h = await db.getHistory();
+  // Function to reload data (can be called to sync)
+  const loadData = async () => {
+    const v = await dataService.getVehicles();
+    const h = await dataService.getHistory();
     setVehicles(v);
     setHistory(h);
   };
 
+  // Helper to update vehicle list state AND persist to DB
+  const updateVehicleAndPersist = async (updatedVehicle: Vehicle, newLog?: HistoryLog) => {
+     // Optimistic UI update
+     setVehicles(prev => prev.map(v => v.id === updatedVehicle.id ? updatedVehicle : v));
+     if (newLog) setHistory(prev => [...prev, newLog]);
+
+     // Persist
+     await dataService.saveVehicle(updatedVehicle);
+     if (newLog) await dataService.saveHistoryLog(newLog);
+  };
+
   // Actions
-  const handleUpdateLocation = async (vehicleId: string, newLocation: LocationEnum, operator: string, registration: string) => {
+  const handleUpdateLocation = (vehicleId: string, newLocation: LocationEnum, operator: string, registration: string) => {
     const vehicle = vehicles.find(v => v.id === vehicleId);
     if (!vehicle) return;
 
-    // 1. Update Vehicle in DB (Async)
-    await db.updateVehicleLocation(
-      vehicleId,
-      newLocation,
-      vehicle.currentLocation, // Current becomes last
+    const updatedVehicle: Vehicle = {
+      ...vehicle,
+      lastLocation: vehicle.currentLocation,
+      currentLocation: newLocation,
       operator,
-      registration
-    );
+      registration,
+      lastUpdate: new Date().toISOString(),
+    };
 
-    // 2. Insert History in DB (Async)
     const log: HistoryLog = {
       id: crypto.randomUUID(),
       vehicleId: vehicle.id,
@@ -84,14 +77,12 @@ function App() {
       details: `Registro: ${registration}`,
       registration: registration
     };
-    await db.addHistoryLog(log);
 
-    // 3. Refresh State
-    await refreshData();
+    updateVehicleAndPersist(updatedVehicle, log);
     setSelectedVehicle(null);
   };
 
-  const toggleStatus = async (vehicleId: string) => {
+  const toggleStatus = (vehicleId: string) => {
     const vehicle = vehicles.find(v => v.id === vehicleId);
     if (!vehicle) return;
 
@@ -110,16 +101,14 @@ function App() {
       details += ` (Movido para ${LocationEnum.OFICINA})`;
     }
 
-    // 1. Update Vehicle in DB (Async)
-    await db.updateVehicleStatus(
-      vehicleId,
-      newStatus,
-      newLocation,
-      lastLocation,
-      currentUser
-    );
+    const updatedVehicle: Vehicle = {
+      ...vehicle,
+      status: newStatus,
+      currentLocation: newLocation,
+      lastLocation: lastLocation,
+      lastUpdate: new Date().toISOString()
+    };
 
-    // 2. Insert History in DB (Async)
     const log: HistoryLog = {
       id: crypto.randomUUID(),
       vehicleId: vehicle.id,
@@ -130,15 +119,12 @@ function App() {
       actionType: 'STATUS_CHANGE',
       details: details
     };
-    await db.addHistoryLog(log);
 
-    // 3. Refresh State
-    await refreshData();
+    updateVehicleAndPersist(updatedVehicle, log);
   };
 
   // Helper to normalize text for fuzzy search
   const normalizeText = (text: string) => {
-    if (!text) return "";
     return text
       .toLowerCase()
       .normalize("NFD")
@@ -171,12 +157,12 @@ function App() {
       return a.id.localeCompare(b.id, undefined, { numeric: true });
     });
 
-  if (!isDbReady) {
+  if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-100 text-metro-blue">
-        <div className="flex flex-col items-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-metro-blue mb-4"></div>
-          <h2 className="text-xl font-bold">Conectando ao Banco de Dados...</h2>
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <div className="text-metro-blue font-bold text-xl flex flex-col items-center">
+            <div className="w-12 h-12 border-4 border-metro-blue border-t-transparent rounded-full animate-spin mb-4"></div>
+            Carregando Sistema...
         </div>
       </div>
     );
@@ -189,6 +175,9 @@ function App() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-4">
           <div className="flex items-center gap-4 md:gap-6 w-full md:w-auto">
             <MetroLogo className="shrink-0" />
+            <h1 className="text-white text-sm sm:text-base md:text-lg font-medium tracking-wide leading-tight opacity-90 hidden sm:block border-l border-white/30 pl-6 h-10 flex items-center">
+              Sistema de Localização de Veículos de Via - SLVV
+            </h1>
           </div>
           <div className="flex items-center space-x-4 text-white w-full md:w-auto justify-end">
             <button 
@@ -196,6 +185,15 @@ function App() {
               className="bg-white text-metro-blue px-4 py-2 rounded font-bold text-sm hover:bg-gray-100 transition shadow-sm w-full md:w-auto"
             >
               Histórico Geral
+            </button>
+            <button 
+              onClick={loadData}
+              className="p-2 text-white hover:bg-white/10 rounded-full transition"
+              title="Atualizar Dados"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
             </button>
           </div>
         </div>
@@ -342,15 +340,17 @@ function App() {
       </main>
 
       {/* Footer */}
-      <footer className="bg-white border-t border-gray-200 mt-auto py-6">
-        <div className="max-w-7xl mx-auto px-4 flex flex-col items-center">
-            <p className="text-sm text-gray-500 mb-2">
+      <footer className="bg-white border-t border-gray-200 mt-auto py-4">
+        <div className="max-w-7xl mx-auto px-4 text-center space-y-2">
+            <div className="flex items-center justify-center gap-2 text-xs text-gray-400">
+              <span>Status do Banco de Dados:</span>
+              <span className={`font-bold ${connectionMode === 'CLOUD' ? 'text-green-600' : 'text-yellow-600'}`}>
+                {connectionMode === 'CLOUD' ? '● Nuvem (Sincronizado)' : '● Local (Apenas este dispositivo)'}
+              </span>
+            </div>
+            <p className="text-sm text-gray-500">
                 © 2025 Companhia do Metropolitano de São Paulo - Metrô
             </p>
-            <div className="text-xs text-gray-400 flex items-center">
-              <span className={`w-2 h-2 rounded-full mr-2 ${connectionMode === 'CLOUD' ? 'bg-green-500' : 'bg-gray-400'}`}></span>
-              Modo de Conexão: {connectionMode === 'CLOUD' ? 'Nuvem (Sincronizado)' : 'Local (Dispositivo)'}
-            </div>
         </div>
       </footer>
 

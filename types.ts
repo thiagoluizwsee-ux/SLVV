@@ -39,12 +39,13 @@ export interface HistoryLog {
   registration?: string;
 }
 
-export type ConnectionMode = 'LOCAL' | 'CLOUD';
-
-// Declare alasql and Supabase on window for TypeScript
+// Global definition for Supabase loaded via Script tag
 declare global {
   interface Window {
-    alasql: (sql: string, params?: any[]) => any;
-    supabase: any;
+    supabase: {
+      createClient: (url: string, key: string) => any;
+    };
   }
 }
+
+export type ConnectionMode = 'CLOUD' | 'LOCAL';
