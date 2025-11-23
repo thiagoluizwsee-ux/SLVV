@@ -2,6 +2,19 @@ import React, { useState, useEffect } from 'react';
 import { LocationEnum, Vehicle } from '../types';
 import { AVAILABLE_LOCATIONS } from '../constants';
 
+// Registry of Operators and their Registration IDs
+const OPERATOR_REGISTRY: { [key: string]: string } = {
+  'Thiago': '24026-9',
+  'Edivaldo': '19178-1',
+  'Thiago Vico': '9999',
+  'Adilson': '20910-8',
+  'Abílio': '22201-5',
+  'Fabio Vech': '7777',
+  'Eduardo': '23920-1',
+  'Márcio': '21040-8',
+  'José Edson': '24081-1'
+};
+
 interface Props {
   vehicle: Vehicle;
   onClose: () => void;
@@ -13,6 +26,28 @@ export const UpdateModal: React.FC<Props> = ({ vehicle, onClose, onUpdate, curre
   const [selectedLocation, setSelectedLocation] = useState<LocationEnum>(vehicle.currentLocation);
   const [operatorName, setOperatorName] = useState('');
   const [registration, setRegistration] = useState('');
+
+  // Helper to remove accents and lowercase
+  const normalizeString = (str: string) => {
+    return str
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .trim();
+  };
+
+  // Effect to auto-fill registration when operator name changes (Case & Accent Insensitive)
+  useEffect(() => {
+    const normalizedInput = normalizeString(operatorName);
+    
+    const matchedKey = Object.keys(OPERATOR_REGISTRY).find(
+      key => normalizeString(key) === normalizedInput
+    );
+
+    if (matchedKey) {
+      setRegistration(OPERATOR_REGISTRY[matchedKey]);
+    }
+  }, [operatorName]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
