@@ -1,4 +1,5 @@
-import React from 'react';
+
+import React, { useState } from 'react';
 import { HistoryLog } from '../types';
 
 interface Props {
@@ -8,9 +9,36 @@ interface Props {
 }
 
 export const HistoryView: React.FC<Props> = ({ logs, onClose, vehicleFilter }) => {
-  const filteredLogs = vehicleFilter 
-    ? logs.filter(log => log.vehicleId === vehicleFilter)
-    : logs;
+  // Filter States
+  const [filters, setFilters] = useState({
+    date: '',
+    vehicle: '',
+    action: '',
+    details: '',
+    registration: '',
+    operator: ''
+  });
+
+  const filteredLogs = logs.filter(log => {
+    // 1. Pre-filter by Vehicle ID if modal is specific
+    if (vehicleFilter && log.vehicleId !== vehicleFilter) return false;
+
+    // 2. Column Filters
+    const dateStr = new Date(log.timestamp).toLocaleString('pt-BR').toLowerCase();
+    const actionLabel = log.actionType === 'LOCATION_UPDATE' ? 'movimentação' : 'status';
+    
+    // Normalize helper
+    const norm = (str: string) => str ? str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") : "";
+    
+    return (
+      norm(dateStr).includes(norm(filters.date)) &&
+      norm(log.vehicleId).includes(norm(filters.vehicle)) &&
+      norm(actionLabel).includes(norm(filters.action)) &&
+      norm(log.details || '').includes(norm(filters.details)) &&
+      norm(log.registration || '').includes(norm(filters.registration)) &&
+      norm(log.operator).includes(norm(filters.operator))
+    );
+  });
 
   // Sort by newest first
   const sortedLogs = [...filteredLogs].sort((a, b) => 
@@ -32,23 +60,32 @@ export const HistoryView: React.FC<Props> = ({ logs, onClose, vehicleFilter }) =
         </div>
         
         <div className="flex-1 overflow-y-auto">
-          {sortedLogs.length === 0 ? (
+          {sortedLogs.length === 0 && logs.length === 0 ? (
             <p className="text-center text-gray-500 py-8">Nenhum registro encontrado.</p>
           ) : (
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50 sticky top-0 shadow-sm z-10">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50">Data/Hora</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50">Veículo</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50">Ação</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50">Detalhes</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50">Registro</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50">Operador</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50 min-w-[150px]">Data/Hora</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50 min-w-[100px]">Veículo</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50 min-w-[120px]">Ação</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50 min-w-[200px]">Detalhes</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50 min-w-[120px]">Registro</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50 min-w-[150px]">Operador</th>
+                </tr>
+                {/* Filter Row */}
+                <tr className="bg-gray-50">
+                  <th className="px-2 py-1"><input className="w-full text-xs p-1 border rounded" placeholder="Filtrar Data" value={filters.date} onChange={e => setFilters({...filters, date: e.target.value})} /></th>
+                  <th className="px-2 py-1"><input className="w-full text-xs p-1 border rounded" placeholder="Filtrar Veículo" value={filters.vehicle} onChange={e => setFilters({...filters, vehicle: e.target.value})} /></th>
+                  <th className="px-2 py-1"><input className="w-full text-xs p-1 border rounded" placeholder="Filtrar Ação" value={filters.action} onChange={e => setFilters({...filters, action: e.target.value})} /></th>
+                  <th className="px-2 py-1"><input className="w-full text-xs p-1 border rounded" placeholder="Filtrar Detalhes" value={filters.details} onChange={e => setFilters({...filters, details: e.target.value})} /></th>
+                  <th className="px-2 py-1"><input className="w-full text-xs p-1 border rounded" placeholder="Filtrar Reg." value={filters.registration} onChange={e => setFilters({...filters, registration: e.target.value})} /></th>
+                  <th className="px-2 py-1"><input className="w-full text-xs p-1 border rounded" placeholder="Filtrar Op." value={filters.operator} onChange={e => setFilters({...filters, operator: e.target.value})} /></th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {sortedLogs.map((log) => (
-                  <tr key={log.id} className="hover:bg-gray-50 transition-colors">
+                  <tr key={log.id} className="hover:bg-gray-50 transition-colors group">
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {new Date(log.timestamp).toLocaleString('pt-BR')}
                     </td>

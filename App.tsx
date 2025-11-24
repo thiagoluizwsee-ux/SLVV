@@ -29,13 +29,11 @@ function App() {
     setConnectionMode(mode);
     
     const fetchData = async (isBackgroundUpdate = false) => {
-      // Only show full screen loader on first load, not during background polling
       if (!isBackgroundUpdate) {
         setLoading(true);
       }
       
       const v = await getVehicles();
-      // Filter out deleted vehicles explicitly if they exist in storage
       const EXCLUDED_IDS = ['ME 12', 'TV 01', 'VF 12'];
       setVehicles(v.filter(veh => !EXCLUDED_IDS.includes(veh.id)));
       
@@ -47,23 +45,19 @@ function App() {
       }
     };
 
-    // Initial load
     fetchData(false);
     
-    // Poll for updates every 30 seconds if in cloud mode
     const interval = setInterval(() => {
         if (mode === 'CLOUD') {
-             // Pass true to indicate this is a background update (no loading screen)
              fetchData(true);
         }
-    }, 30000);
+    }, 15000); // Faster polling (15s)
 
     return () => clearInterval(interval);
   }, []);
 
   // Actions
   const handleUpdateLocation = async (vehicleId: string, newLocation: LocationEnum, operator: string, registration: string) => {
-    // Optimistic Update
     const updatedVehicles = vehicles.map(v => {
         if (v.id === vehicleId) {
             return {
@@ -79,7 +73,6 @@ function App() {
     });
     
     const targetVehicle = updatedVehicles.find(v => v.id === vehicleId);
-    
     setVehicles(updatedVehicles);
     setSelectedVehicle(null);
 
@@ -88,7 +81,7 @@ function App() {
         const oldV = vehicles.find(v => v.id === vehicleId);
 
         const log: HistoryLog = {
-            id: crypto.randomUUID(),
+            id: crypto.randomUUID(), // This is now the Primary Key in DB
             vehicleId: vehicleId,
             previousLocation: oldV?.currentLocation || null,
             newLocation: newLocation,
@@ -99,15 +92,9 @@ function App() {
             registration: registration
         };
         
-        // Optimistic UI Update
+        // Optimistic Update
         setHistory(prev => [log, ...prev]);
         await addHistoryLog(log);
-        
-        // Refresh history to get the Row ID back from cloud
-        if (connectionMode === 'CLOUD') {
-            const h = await getHistory();
-            setHistory(h);
-        }
     }
   };
 
@@ -162,15 +149,8 @@ function App() {
           details: details
         };
         
-        // Optimistic UI Update
         setHistory(prev => [log, ...prev]);
         await addHistoryLog(log);
-
-        // Refresh history to get the Row ID back from cloud
-        if (connectionMode === 'CLOUD') {
-            const h = await getHistory();
-            setHistory(h);
-        }
     }
   };
 
@@ -183,20 +163,13 @@ function App() {
       .replace(/[^a-z0-9]/g, "");
   };
 
-  // Helper to format date based on "Same Day" logic
   const formatLastUpdate = (isoDate: string) => {
     const date = new Date(isoDate);
     const now = new Date();
-    
-    // Reset hours to compare just the calendar date
     const dateDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
     const nowDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-
     const isToday = dateDay.getTime() === nowDay.getTime();
-    
-    return isToday 
-      ? date.toLocaleTimeString('pt-BR') 
-      : date.toLocaleString('pt-BR');
+    return isToday ? date.toLocaleTimeString('pt-BR') : date.toLocaleString('pt-BR');
   };
 
   // Filter Logic
@@ -314,15 +287,7 @@ function App() {
                   <h3 className={`text-xl font-bold ${isMaintenance ? 'text-red-700' : 'text-metro-blue'}`}>{vehicle.id}</h3>
                   
                   {isMaintenance && (
-                    <svg 
-                      className="w-5 h-5 ml-2 text-red-700" 
-                      viewBox="0 0 24 24" 
-                      fill="none" 
-                      stroke="currentColor" 
-                      strokeWidth="2" 
-                      strokeLinecap="round" 
-                      strokeLinejoin="round"
-                    >
+                    <svg className="w-5 h-5 ml-2 text-red-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
                     </svg>
                   )}
@@ -331,7 +296,7 @@ function App() {
 
               {/* Card Body */}
               <div className="p-4 space-y-4">
-                {/* Changed grid-cols from 30/70 to 25/75 to give right column even more space */}
+                {/* Grid cols 25% / 75% */}
                 <div className="grid grid-cols-[25%_75%] gap-4">
                   <div>
                     <p className={`text-xs uppercase tracking-wide ${isMaintenance ? 'text-red-500' : 'text-gray-500'}`}>Local Atual</p>
@@ -397,7 +362,6 @@ function App() {
         </div>
       </main>
 
-      {/* Footer */}
       <footer className="bg-white border-t border-gray-200 mt-auto py-6">
         <div className="max-w-7xl mx-auto px-4 text-center">
             <p className="text-sm text-gray-500 mb-2">
@@ -412,7 +376,6 @@ function App() {
         </div>
       </footer>
 
-      {/* Modals */}
       {selectedVehicle && (
         <UpdateModal
           vehicle={selectedVehicle}

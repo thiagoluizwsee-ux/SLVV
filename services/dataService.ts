@@ -22,67 +22,11 @@ export const initDataService = (): DataMode => {
   return currentMode;
 };
 
-export const getVehicles = async (): Promise<Vehicle[]> => {
-  if (currentMode === 'CLOUD' && supabaseClient) {
-    try {
-      // Fetch all vehicles from 'vehicles' table
-      const { data, error } = await supabaseClient
-        .from('vehicles')
-        .select('*');
-      
-      if (error) {
-        console.error("Erro detalhado do Supabase (getVehicles):", JSON.stringify(error, null, 2));
-        if (error.code === '42P01') { // Relation does not exist
-             console.log("%c ATENÇÃO: Tabelas não encontradas! Rode o SQL abaixo no Supabase:", "color: orange; font-weight: bold;");
-             console.log(`
-                create table vehicles (
-                  id text primary key,
-                  data jsonb
-                );
-                create table history_logs (
-                  id uuid primary key default gen_random_uuid(),
-                  data jsonb
-                );
-                ALTER TABLE vehicles DISABLE ROW LEVEL SECURITY;
-                ALTER TABLE history_logs DISABLE ROW LEVEL SECURITY;
-             `);
-        }
-        throw error;
-      }
-
-      if (data && data.length > 0) {
-        // Map DB rows back to Vehicle objects
-        const cloudVehicles = data.map((row: any) => row.data);
-        
-        // Merge logic: Ensure new vehicles in code (INITIAL_VEHICLES) are added to DB if missing
-        const merged = [...cloudVehicles];
-        
-        for (const initial of INITIAL_VEHICLES) {
-          if (!cloudVehicles.find((v: Vehicle) => v.id === initial.id)) {
-            merged.push(initial);
-            // Add to DB asynchronously
-            await saveVehicle(initial); 
-          }
-        }
-        return merged;
-      } else {
-        // First run in cloud: Seed with initial data
-        for (const v of INITIAL_VEHICLES) {
-            await saveVehicle(v);
-        }
-        return INITIAL_VEHICLES;
-      }
-    } catch (err) {
-      console.error("Erro ao buscar veículos da nuvem:", err);
-      // Fallback to local if cloud fails temporarily
-    }
-  }
-
-  // Local Storage Fallback
+// Helper to get local vehicles
+const getLocalVehiclesData = (): Vehicle[] => {
   const saved = localStorage.getItem('metro_vehicles');
   const localVehicles = saved ? JSON.parse(saved) : INITIAL_VEHICLES;
   
-  // Merge local logic
   const merged = [...localVehicles];
   for (const initial of INITIAL_VEHICLES) {
     if (!localVehicles.find((v: Vehicle) => v.id === initial.id)) {
@@ -92,27 +36,45 @@ export const getVehicles = async (): Promise<Vehicle[]> => {
   return merged;
 };
 
+export const getVehicles = async (): Promise<Vehicle[]> => {
+  if (currentMode === 'CLOUD' && supabaseClient) {
+    try {
+      const { data, error } = await supabaseClient.from('vehicles').select('*');
+      
+      if (error) throw error;
+
+      if (data && data.length > 0) {
+        const cloudVehicles = data.map((row: any) => row.data);
+        const merged = [...cloudVehicles];
+        for (const initial of INITIAL_VEHICLES) {
+          if (!cloudVehicles.find((v: Vehicle) => v.id === initial.id)) {
+            merged.push(initial);
+            await saveVehicle(initial); 
+          }
+        }
+        return merged;
+      } else {
+        for (const v of INITIAL_VEHICLES) {
+            await saveVehicle(v);
+        }
+        return INITIAL_VEHICLES;
+      }
+    } catch (err: any) {
+      console.error("Erro nuvem:", err);
+    }
+  }
+  return getLocalVehiclesData();
+};
+
 export const saveVehicle = async (vehicle: Vehicle) => {
   if (currentMode === 'CLOUD' && supabaseClient) {
     try {
-      // Upsert into vehicles table
-      const { error } = await supabaseClient
-        .from('vehicles')
-        .upsert({ id: vehicle.id, data: vehicle });
-        
-      if (error) {
-          console.error("Erro detalhado ao salvar veículo na nuvem:", JSON.stringify(error, null, 2));
-          if (error.code === '42501') {
-              console.warn("%c PERMISSÃO NEGADA (RLS).", "color: red; font-weight: bold;");
-              console.warn("Execute no Supabase: ALTER TABLE vehicles DISABLE ROW LEVEL SECURITY;");
-          }
-      }
+      await supabaseClient.from('vehicles').upsert({ id: vehicle.id, data: vehicle });
     } catch (err) {
-      console.error("Erro de conexão ao salvar:", err);
+      console.error("Erro saveVehicle:", err);
     }
   }
   
-  // Always save to local storage as backup/cache
   const saved = localStorage.getItem('metro_vehicles');
   let vehicles = saved ? JSON.parse(saved) : INITIAL_VEHICLES;
   const index = vehicles.findIndex((v: Vehicle) => v.id === vehicle.id);
@@ -124,126 +86,99 @@ export const saveVehicle = async (vehicle: Vehicle) => {
   localStorage.setItem('metro_vehicles', JSON.stringify(vehicles));
 };
 
+// ============================================================================
+// HISTORY LOGIC - DIRECT ID STRATEGY
+// ============================================================================
+
 export const getHistory = async (): Promise<HistoryLog[]> => {
+    // 1. Local Load (Always fast)
+    const localSaved = localStorage.getItem('metro_history');
+    let localLogs = localSaved ? JSON.parse(localSaved) : [];
+
+    // 2. Cloud Load (Sync)
     if (currentMode === 'CLOUD' && supabaseClient) {
         try {
-            // Select both the ID (primary key) and the JSON data
+            // Select columns matching new schema
             const { data, error } = await supabaseClient
                 .from('history_logs')
-                .select('id, data');
+                .select('*'); // id, vehicle_id, data
                 
-            if (error) throw error;
-            
-            if (data) {
-                // Merge the Row ID into the object so we can delete by it later
-                return data.map((row: any) => ({
+            if (!error && data) {
+                // Map back to HistoryLog objects
+                // The 'data' column contains the details, but 'id' is the real key
+                const cloudLogs = data.map((row: any) => ({
                     ...row.data,
-                    _rowId: row.id 
+                    id: row.id // Ensure ID matches the Primary Key
                 }));
+                
+                // Update Local Cache with Cloud Data
+                localStorage.setItem('metro_history', JSON.stringify(cloudLogs));
+                return cloudLogs;
             }
         } catch (err) {
-            console.error("Erro ao buscar histórico nuvem:", err);
+            console.error("Erro getHistory Cloud:", err);
         }
     }
-    const saved = localStorage.getItem('metro_history');
-    return saved ? JSON.parse(saved) : [];
+    
+    return localLogs;
 }
 
 export const addHistoryLog = async (log: HistoryLog) => {
-    if (currentMode === 'CLOUD' && supabaseClient) {
-        try {
-            // We don't save _rowId into the json, it's a transient field
-            const { _rowId, ...cleanLog } = log;
-            const { error } = await supabaseClient.from('history_logs').insert({ data: cleanLog });
-            
-            if (error) {
-                console.error("Erro detalhado ao salvar histórico (Supabase):", JSON.stringify(error, null, 2));
-                if (error.code === '42501') {
-                     console.warn("PERMISSÃO NEGADA (RLS) no Histórico. Execute: ALTER TABLE history_logs DISABLE ROW LEVEL SECURITY;");
-                }
-            }
-        } catch (err) {
-             console.error("Erro ao salvar histórico nuvem:", err);
-        }
-    }
-
+    // 1. Save Local
     const saved = localStorage.getItem('metro_history');
     const history = saved ? JSON.parse(saved) : [];
     history.push(log);
     localStorage.setItem('metro_history', JSON.stringify(history));
+
+    // 2. Save Cloud (New Schema: ID is Primary Key)
+    if (currentMode === 'CLOUD' && supabaseClient) {
+        try {
+            const { error } = await supabaseClient
+                .from('history_logs')
+                .insert({
+                    id: log.id,           // PRIMARY KEY
+                    vehicle_id: log.vehicleId,
+                    data: log
+                });
+            
+            if (error) console.error("Erro addHistoryLog Cloud:", error);
+        } catch (err) {
+             console.error("Erro addHistoryLog Cloud:", err);
+        }
+    }
 }
 
 export const deleteHistoryLog = async (logId: string, rowId?: string): Promise<boolean> => {
-    let success = true;
+    console.log(`[Delete] Excluindo ID: ${logId}`);
 
-    if (currentMode === 'CLOUD' && supabaseClient) {
-        try {
-            let targetRowId = rowId;
-
-            // STRATEGY: NUCLEAR OPTION
-            // If we don't have the Row ID, we fetch EVERYTHING (or latest 100) to find it manually via JS.
-            // This avoids JSONB query syntax issues in PostgREST completely.
-            if (!targetRowId) {
-                 console.log(`[Delete] ID de linha ausente. Baixando últimos registros para encontrar ID JSON: ${logId}`);
-                 
-                 const { data: allLogs, error: fetchError } = await supabaseClient
-                    .from('history_logs')
-                    .select('id, data')
-                    .order('id', { ascending: false }) // Get newest first
-                    .limit(200); // Reasonable limit to find recent actions
-                
-                 if (fetchError) throw fetchError;
-                 
-                 // Manual Find in JS
-                 const match = allLogs.find((row: any) => row.data && row.data.id === logId);
-                 
-                 if (match) {
-                     targetRowId = match.id;
-                     console.log(`[Delete] ID de linha ENCONTRADO manualmente: ${targetRowId}`);
-                 } else {
-                     console.warn("[Delete] Registro não encontrado nos últimos 200 itens do banco.");
-                     // It might be already deleted or older, but we can't delete what we can't find.
-                     return false;
-                 }
-            }
-
-            if (targetRowId) {
-                // Delete by Primary Key - The most robust way
-                const res = await supabaseClient
-                    .from('history_logs')
-                    .delete({ count: 'exact' })
-                    .eq('id', targetRowId);
-                
-                if (res.error) throw res.error;
-
-                if (res.count === 0 || res.count === null) {
-                    // Check if it was already deleted
-                    console.warn("[Delete] Comando executado, mas contagem = 0. Verifique se já foi excluído.");
-                } else {
-                    console.log(`[Delete] Sucesso! Registros apagados: ${res.count}`);
-                }
-            }
-        } catch (err: any) {
-            console.error("Erro ao excluir histórico nuvem:", err);
-            success = false;
-
-            if (err.code === '42501' || (err.message && err.message.includes('row-level security'))) {
-                alert("O Banco de Dados impediu a exclusão (RLS Ativado).\n\nAcesse o Supabase > SQL Editor e rode:\nALTER TABLE history_logs DISABLE ROW LEVEL SECURITY;");
-            } else {
-                alert(`Erro ao excluir na nuvem: ${err.message}`);
-            }
-        }
+    // 1. DELETE LOCAL (Instant UI feedback)
+    const saved = localStorage.getItem('metro_history');
+    if (saved) {
+        let history = JSON.parse(saved) as HistoryLog[];
+        history = history.filter(log => log.id !== logId);
+        localStorage.setItem('metro_history', JSON.stringify(history));
     }
 
-    // Always delete from local storage
-    if (success || currentMode === 'LOCAL') {
-        const saved = localStorage.getItem('metro_history');
-        if (saved) {
-            let history = JSON.parse(saved) as HistoryLog[];
-            history = history.filter(log => log.id !== logId);
-            localStorage.setItem('metro_history', JSON.stringify(history));
+    // 2. DELETE CLOUD (Direct ID Match - Infallible)
+    if (currentMode === 'CLOUD' && supabaseClient) {
+        try {
+            // Delete directly by Primary Key 'id'
+            // No JSON filtering needed anymore.
+            const { error } = await supabaseClient
+                .from('history_logs')
+                .delete()
+                .eq('id', logId);
+
+            if (error) {
+                console.error("Erro delete Cloud:", error);
+                return false;
+            }
+            console.log("[Delete] Sucesso na Nuvem.");
+        } catch (err) {
+            console.error("Erro delete Cloud:", err);
+            return false;
         }
     }
     
-    return success;
+    return true;
 }
