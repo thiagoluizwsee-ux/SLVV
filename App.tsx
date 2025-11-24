@@ -183,6 +183,22 @@ function App() {
       .replace(/[^a-z0-9]/g, "");
   };
 
+  // Helper to format date based on "Same Day" logic
+  const formatLastUpdate = (isoDate: string) => {
+    const date = new Date(isoDate);
+    const now = new Date();
+    
+    // Reset hours to compare just the calendar date
+    const dateDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const nowDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+    const isToday = dateDay.getTime() === nowDay.getTime();
+    
+    return isToday 
+      ? date.toLocaleTimeString('pt-BR') 
+      : date.toLocaleString('pt-BR');
+  };
+
   // Filter Logic
   const filteredVehicles = vehicles
     .filter(vehicle => {
@@ -315,8 +331,8 @@ function App() {
 
               {/* Card Body */}
               <div className="p-4 space-y-4">
-                {/* Changed grid-cols from 40/60 to 30/70 to give right column even more space */}
-                <div className="grid grid-cols-[30%_70%] gap-4">
+                {/* Changed grid-cols from 30/70 to 25/75 to give right column even more space */}
+                <div className="grid grid-cols-[25%_75%] gap-4">
                   <div>
                     <p className={`text-xs uppercase tracking-wide ${isMaintenance ? 'text-red-500' : 'text-gray-500'}`}>Local Atual</p>
                     <p className={`text-lg font-bold ${isMaintenance ? 'text-red-700' : 'text-gray-900'}`}>{vehicle.currentLocation}</p>
@@ -374,7 +390,7 @@ function App() {
               <div className={`px-4 py-2 border-t text-xs text-right ${
                 isMaintenance ? 'bg-red-100 border-red-200 text-red-500' : 'bg-gray-50 border-gray-100 text-gray-400'
               }`}>
-                Atualizado em: {new Date(vehicle.lastUpdate).toLocaleTimeString('pt-BR')}
+                Atualizado em: {formatLastUpdate(vehicle.lastUpdate)}
               </div>
             </div>
           )})}

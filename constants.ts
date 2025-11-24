@@ -23,7 +23,7 @@ export const AVAILABLE_LOCATIONS = [
   LocationEnum.ECL_4,
   LocationEnum.PIT,
   LocationEnum.OFICINA,
-].sort();
+];
 
 export const INITIAL_VEHICLES: Vehicle[] = [
   {
