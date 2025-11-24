@@ -11,17 +11,17 @@ export const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdX
 
 export const AVAILABLE_LOCATIONS = [
   LocationEnum.PAT,
+  LocationEnum.RAMAL_5,
+  LocationEnum.RAMAL_6,
   LocationEnum.ETC_5,
   LocationEnum.ETC_6,
   LocationEnum.ETC_7,
+  LocationEnum.TM_02_LUZ,
+  LocationEnum.TM_02_ANR,
+  LocationEnum.PTI,
   LocationEnum.ECL_3,
   LocationEnum.ECL_4,
   LocationEnum.PIT,
-  LocationEnum.PTI,
-  LocationEnum.RAMAL_5,
-  LocationEnum.RAMAL_6,
-  LocationEnum.TM_02_LUZ,
-  LocationEnum.TM_02_ANR,
   LocationEnum.OFICINA,
 ];
 
