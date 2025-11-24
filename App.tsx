@@ -188,10 +188,12 @@ function App() {
       const normalizedSearch = normalizeText(searchTerm);
       const normalizedId = normalizeText(vehicle.id);
       const normalizedLocation = normalizeText(vehicle.currentLocation);
+      const normalizedRegistration = normalizeText(vehicle.registration || '');
       
       const matchesSearch = 
         normalizedId.includes(normalizedSearch) || 
-        normalizedLocation.includes(normalizedSearch);
+        normalizedLocation.includes(normalizedSearch) ||
+        normalizedRegistration.includes(normalizedSearch);
       
       const matchesFilter = filterLocation === 'ALL' || vehicle.currentLocation === filterLocation;
 
@@ -312,7 +314,8 @@ function App() {
 
               {/* Card Body */}
               <div className="p-4 space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+                {/* Changed grid-cols from 40/60 to 30/70 to give right column even more space */}
+                <div className="grid grid-cols-[30%_70%] gap-4">
                   <div>
                     <p className={`text-xs uppercase tracking-wide ${isMaintenance ? 'text-red-500' : 'text-gray-500'}`}>Local Atual</p>
                     <p className={`text-lg font-bold ${isMaintenance ? 'text-red-700' : 'text-gray-900'}`}>{vehicle.currentLocation}</p>
