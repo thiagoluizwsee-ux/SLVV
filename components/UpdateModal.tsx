@@ -6,7 +6,7 @@ import { AVAILABLE_LOCATIONS } from '../constants';
 // Registry of Operators and their Registration IDs
 const OPERATOR_REGISTRY: { [key: string]: string } = {
   'Thiago Luiz das Neves': '24026-9',
-  'Edivaldo': '19178-1',
+  'Edivaldo Cordeiro': '19178-1',
   'Tiago Vico': '9999',
   'Adilson Mendes Damascena': '20910-8',
   'Abílio': '22201-5',
