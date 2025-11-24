@@ -178,70 +178,64 @@ export const deleteHistoryLog = async (logId: string, rowId?: string): Promise<b
 
     if (currentMode === 'CLOUD' && supabaseClient) {
         try {
-            let res;
-            
-            // Strategy 1: Search and Destroy (If rowId is missing)
             let targetRowId = rowId;
 
+            // STRATEGY: NUCLEAR OPTION
+            // If we don't have the Row ID, we fetch EVERYTHING (or latest 100) to find it manually via JS.
+            // This avoids JSONB query syntax issues in PostgREST completely.
             if (!targetRowId) {
-                 console.log(`[Delete] ID de linha não fornecido. Buscando ID da linha para o Log JSON ID: ${logId}`);
-                 const { data: searchData, error: searchError } = await supabaseClient
+                 console.log(`[Delete] ID de linha ausente. Baixando últimos registros para encontrar ID JSON: ${logId}`);
+                 
+                 const { data: allLogs, error: fetchError } = await supabaseClient
                     .from('history_logs')
-                    .select('id')
-                    .eq('data->>id', logId)
-                    .maybeSingle();
+                    .select('id, data')
+                    .order('id', { ascending: false }) // Get newest first
+                    .limit(200); // Reasonable limit to find recent actions
                 
-                 if (searchData && searchData.id) {
-                     targetRowId = searchData.id;
-                     console.log(`[Delete] ID da linha encontrado: ${targetRowId}`);
-                 } else if (searchError) {
-                     console.error("[Delete] Erro ao buscar ID:", searchError);
+                 if (fetchError) throw fetchError;
+                 
+                 // Manual Find in JS
+                 const match = allLogs.find((row: any) => row.data && row.data.id === logId);
+                 
+                 if (match) {
+                     targetRowId = match.id;
+                     console.log(`[Delete] ID de linha ENCONTRADO manualmente: ${targetRowId}`);
+                 } else {
+                     console.warn("[Delete] Registro não encontrado nos últimos 200 itens do banco.");
+                     // It might be already deleted or older, but we can't delete what we can't find.
+                     return false;
                  }
             }
 
             if (targetRowId) {
-                // Best method: Delete by Supabase Primary Key
-                res = await supabaseClient
+                // Delete by Primary Key - The most robust way
+                const res = await supabaseClient
                     .from('history_logs')
                     .delete({ count: 'exact' })
                     .eq('id', targetRowId);
-            } else {
-                // Fallback: Delete based on the ID inside the JSONB data column
-                // Note: This often fails if RLS or Types aren't perfect, hence the search above
-                console.log("[Delete] Tentando exclusão fallback via JSON ID...");
-                res = await supabaseClient
-                    .from('history_logs')
-                    .delete({ count: 'exact' })
-                    .eq('data->>id', logId);
-            }
-            
-            if (res.error) {
-                console.error("Erro detalhado ao excluir:", JSON.stringify(res.error, null, 2));
-                throw res.error;
-            }
+                
+                if (res.error) throw res.error;
 
-            // If count is 0, it means the command ran but nothing was deleted 
-            // (Likely RLS blocking it or ID mismatch)
-            if (res.count === 0 || res.count === null) {
-                console.warn("Atenção: Comando de exclusão rodou, mas nenhum registro foi afetado. Verifique RLS.");
-                throw new Error("RLS_BLOCK");
-            } else {
-                console.log(`[Delete] Sucesso! Registros apagados: ${res.count}`);
+                if (res.count === 0 || res.count === null) {
+                    // Check if it was already deleted
+                    console.warn("[Delete] Comando executado, mas contagem = 0. Verifique se já foi excluído.");
+                } else {
+                    console.log(`[Delete] Sucesso! Registros apagados: ${res.count}`);
+                }
             }
-
         } catch (err: any) {
             console.error("Erro ao excluir histórico nuvem:", err);
             success = false;
 
-            if (err.message === "RLS_BLOCK" || err.code === '42501') {
+            if (err.code === '42501' || (err.message && err.message.includes('row-level security'))) {
                 alert("O Banco de Dados impediu a exclusão (RLS Ativado).\n\nAcesse o Supabase > SQL Editor e rode:\nALTER TABLE history_logs DISABLE ROW LEVEL SECURITY;");
             } else {
-                alert(`Erro ao excluir: ${err.message || 'Erro desconhecido'}`);
+                alert(`Erro ao excluir na nuvem: ${err.message}`);
             }
         }
     }
 
-    // Always delete from local storage to keep UI consistent if in local mode
+    // Always delete from local storage
     if (success || currentMode === 'LOCAL') {
         const saved = localStorage.getItem('metro_history');
         if (saved) {

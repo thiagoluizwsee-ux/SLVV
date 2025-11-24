@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { MetroLogo } from './components/MetroLogo';
 import { AVAILABLE_LOCATIONS } from './constants';
@@ -35,7 +36,7 @@ function App() {
       
       const v = await getVehicles();
       // Filter out deleted vehicles explicitly if they exist in storage
-      const EXCLUDED_IDS = ['ME 12', 'TV 01'];
+      const EXCLUDED_IDS = ['ME 12', 'TV 01', 'VF 12'];
       setVehicles(v.filter(veh => !EXCLUDED_IDS.includes(veh.id)));
       
       const h = await getHistory();

@@ -23,7 +23,7 @@ export const AVAILABLE_LOCATIONS = [
   LocationEnum.ECL_4,
   LocationEnum.PIT,
   LocationEnum.OFICINA,
-];
+].sort();
 
 export const INITIAL_VEHICLES: Vehicle[] = [
   {
@@ -286,5 +286,14 @@ export const INITIAL_VEHICLES: Vehicle[] = [
     lastUpdate: new Date().toISOString(),
     status: VehicleStatus.OPERATION,
     registration: 'REG-030',
+  },
+  {
+    id: 'VF 10',
+    lastLocation: null,
+    currentLocation: LocationEnum.PAT,
+    operator: 'Sistema',
+    lastUpdate: new Date().toISOString(),
+    status: VehicleStatus.OPERATION,
+    registration: 'REG-031',
   },
 ];
