@@ -306,7 +306,7 @@ function App() {
                   <h3 className={`text-xl font-bold ${isMaintenance ? 'text-red-700' : 'text-metro-blue'}`}>{vehicle.id}</h3>
                   
                   {description && (
-                    <span className={`ml-4 text-sm font-medium ${isMaintenance ? 'text-red-600' : 'text-metro-blue'}`}>
+                    <span className={`ml-8 text-sm font-medium ${isMaintenance ? 'text-red-600' : 'text-metro-blue'}`}>
                       {description}
                     </span>
                   )}
@@ -388,11 +388,18 @@ function App() {
       </main>
 
       <footer className="bg-white border-t border-gray-200 mt-auto py-6">
-        <div className="max-w-7xl mx-auto px-4 text-center">
-            <p className="text-sm text-gray-500 mb-2">
-                © 2025 Companhia do Metropolitano de São Paulo - Metrô
-            </p>
-            <div className="flex justify-center items-center text-xs text-gray-400 gap-2">
+        <div className="max-w-7xl mx-auto px-4 relative flex flex-col items-center justify-center">
+            {/* Copyright and Version Line */}
+            <div className="w-full flex flex-col md:flex-row items-center justify-center relative">
+                <p className="text-sm text-gray-500">
+                    © 2025 Companhia do Metropolitano de São Paulo - Metrô
+                </p>
+                <p className="text-xs text-gray-400 mt-2 md:mt-0 md:absolute md:right-0">
+                   Versão: 1.0.0
+                </p>
+            </div>
+            {/* Connection Status Line */}
+            <div className="flex justify-center items-center text-xs text-gray-400 gap-2 mt-2">
               <span className={`w-2 h-2 rounded-full ${connectionMode === 'CLOUD' ? 'bg-green-500' : 'bg-orange-400'}`}></span>
               <span>
                 {connectionMode === 'CLOUD' ? 'Conectado à Nuvem (Sincronizado)' : 'Modo Local (Apenas neste dispositivo)'}
