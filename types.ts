@@ -1,3 +1,4 @@
+
 export enum LocationEnum {
   PAT = 'PAT',
   ETC_5 = 'ETC 5',
@@ -39,6 +40,7 @@ export interface HistoryLog {
   actionType: 'LOCATION_UPDATE' | 'STATUS_CHANGE';
   details?: string;
   registration?: string;
+  _rowId?: string; // Optional field to store Supabase Primary Key
 }
 
 // Supabase Types for Global Window Object

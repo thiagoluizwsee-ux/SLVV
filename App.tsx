@@ -34,8 +34,10 @@ function App() {
       }
       
       const v = await getVehicles();
-      // Filter out ME 12 explicitly if it exists in storage
-      setVehicles(v.filter(veh => veh.id !== 'ME 12'));
+      // Filter out deleted vehicles explicitly if they exist in storage
+      const EXCLUDED_IDS = ['ME 12', 'TV 01'];
+      setVehicles(v.filter(veh => !EXCLUDED_IDS.includes(veh.id)));
+      
       const h = await getHistory();
       setHistory(h);
 
@@ -96,8 +98,15 @@ function App() {
             registration: registration
         };
         
-        setHistory(prev => [...prev, log]);
+        // Optimistic UI Update
+        setHistory(prev => [log, ...prev]);
         await addHistoryLog(log);
+        
+        // Refresh history to get the Row ID back from cloud
+        if (connectionMode === 'CLOUD') {
+            const h = await getHistory();
+            setHistory(h);
+        }
     }
   };
 
@@ -152,8 +161,15 @@ function App() {
           details: details
         };
         
-        setHistory(prev => [...prev, log]);
+        // Optimistic UI Update
+        setHistory(prev => [log, ...prev]);
         await addHistoryLog(log);
+
+        // Refresh history to get the Row ID back from cloud
+        if (connectionMode === 'CLOUD') {
+            const h = await getHistory();
+            setHistory(h);
+        }
     }
   };
 
@@ -306,12 +322,12 @@ function App() {
                     <p className={`text-sm font-medium ${isMaintenance ? 'text-red-600' : 'text-gray-600'}`}>{vehicle.lastLocation || '-'}</p>
                   </div>
                   <div>
-                    <p className={`text-xs uppercase tracking-wide ${isMaintenance ? 'text-red-500' : 'text-gray-500'}`}>Operador</p>
-                    <p className={`text-sm font-medium truncate ${isMaintenance ? 'text-red-800' : 'text-gray-800'}`} title={vehicle.operator}>{vehicle.operator}</p>
-                  </div>
-                  <div>
                     <p className={`text-xs uppercase tracking-wide ${isMaintenance ? 'text-red-500' : 'text-gray-500'}`}>Registro</p>
                     <p className={`text-sm font-medium truncate ${isMaintenance ? 'text-red-800' : 'text-gray-800'}`} title={vehicle.registration}>{vehicle.registration}</p>
+                  </div>
+                  <div>
+                    <p className={`text-xs uppercase tracking-wide ${isMaintenance ? 'text-red-500' : 'text-gray-500'}`}>Operador</p>
+                    <p className={`text-sm font-medium truncate ${isMaintenance ? 'text-red-800' : 'text-gray-800'}`} title={vehicle.operator}>{vehicle.operator}</p>
                   </div>
                 </div>
 
