@@ -274,6 +274,25 @@ function App() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredVehicles.map((vehicle) => {
             const isMaintenance = vehicle.status === VehicleStatus.MAINTENANCE;
+            
+            // Descriptions mapping
+            const vehicleDescriptions: { [key: string]: string } = {
+                'ME 09': 'Esmerilhador Elétrico',
+                'ME 10': 'Esmerilhador Elétrico',
+                'ME 13': 'Auto de Linha',
+                'ME 15': 'Esmerilhador a Diesel HARSCO',
+                'TV 277': 'Caminhão Ultrassom',
+                'VF 01': 'Gôndola Pipa',
+                'VF 03': 'Vagão Ferroviário com Gaiola',
+                'VF 04': 'Gôndola de Solda',
+                'VF 06': 'Vagão Ferroviário',
+                'VF 07': 'Vagão Ferroviário',
+                'VF 10': 'Vagão Ferroviário',
+                'VF 11': 'Gôndola Pipa'
+            };
+
+            const description = vehicleDescriptions[vehicle.id];
+
             return (
             <div key={vehicle.id} className={`rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 overflow-hidden border ${
               isMaintenance ? 'bg-red-50 border-red-200' : 'bg-white border-gray-100'
@@ -282,9 +301,15 @@ function App() {
               <div className={`px-4 py-3 border-b flex justify-between items-center ${
                 isMaintenance ? 'bg-red-100 border-red-200' : 'bg-gray-50 border-gray-100'
               }`}>
-                <div className="flex items-center">
+                <div className="flex items-center flex-wrap">
                   <div className={`w-3 h-3 rounded-full mr-2 ${isMaintenance ? 'bg-red-600 animate-pulse' : 'bg-green-500'}`}></div>
                   <h3 className={`text-xl font-bold ${isMaintenance ? 'text-red-700' : 'text-metro-blue'}`}>{vehicle.id}</h3>
+                  
+                  {description && (
+                    <span className={`ml-4 text-sm font-medium ${isMaintenance ? 'text-red-600' : 'text-metro-blue'}`}>
+                      {description}
+                    </span>
+                  )}
                   
                   {isMaintenance && (
                     <svg className="w-5 h-5 ml-2 text-red-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
