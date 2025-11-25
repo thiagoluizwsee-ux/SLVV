@@ -1,5 +1,3 @@
-
-
 import React, { useState, useEffect } from 'react';
 import { MetroLogo } from './components/MetroLogo';
 import { AVAILABLE_LOCATIONS } from './constants';
@@ -285,7 +283,7 @@ function App() {
                 'TV 273': 'Caminhão Socorro',
                 'TV 277': 'Caminhão Ultrassom',
                 'VF 01': 'Gôndola Pipa',
-                'VF 03': 'Vagão Ferroviário com Gaiola',
+                'VF 03': 'Vagão Ferroviário com Pórtico',
                 'VF 04': 'Gôndola de Solda',
                 'VF 06': 'Vagão Ferroviário',
                 'VF 07': 'Vagão Ferroviário',
@@ -323,23 +321,24 @@ function App() {
 
               {/* Card Body */}
               <div className="p-4 space-y-4">
-                {/* Grid cols 25% / 75% */}
-                <div className="grid grid-cols-[25%_75%] gap-4">
+                {/* Grid cols 2 to balance swapped fields */}
+                <div className="grid grid-cols-2 gap-4">
                   <div>
                     <p className={`text-xs uppercase tracking-wide ${isMaintenance ? 'text-red-500' : 'text-gray-500'}`}>Local Atual</p>
                     <p className={`text-lg font-bold ${isMaintenance ? 'text-red-700' : 'text-gray-900'}`}>{vehicle.currentLocation}</p>
                   </div>
-                  <div>
+                  <div className="pl-16">
                     <p className={`text-xs uppercase tracking-wide ${isMaintenance ? 'text-red-500' : 'text-gray-500'}`}>Último Local</p>
                     <p className={`text-sm font-medium ${isMaintenance ? 'text-red-600' : 'text-gray-600'}`}>{vehicle.lastLocation || '-'}</p>
                   </div>
+                  {/* Swapped Fields: Operator first, then Registration */}
                   <div>
+                    <p className={`text-xs uppercase tracking-wide ${isMaintenance ? 'text-red-500' : 'text-gray-500'}`}>Alterado por</p>
+                    <p className={`text-sm font-medium truncate ${isMaintenance ? 'text-red-800' : 'text-gray-800'}`} title={vehicle.operator}>{vehicle.operator}</p>
+                  </div>
+                  <div className="pl-24">
                     <p className={`text-xs uppercase tracking-wide ${isMaintenance ? 'text-red-500' : 'text-gray-500'}`}>Registro</p>
                     <p className={`text-sm font-medium truncate ${isMaintenance ? 'text-red-800' : 'text-gray-800'}`} title={vehicle.registration}>{vehicle.registration}</p>
-                  </div>
-                  <div>
-                    <p className={`text-xs uppercase tracking-wide ${isMaintenance ? 'text-red-500' : 'text-gray-500'}`}>Operador</p>
-                    <p className={`text-sm font-medium truncate ${isMaintenance ? 'text-red-800' : 'text-gray-800'}`} title={vehicle.operator}>{vehicle.operator}</p>
                   </div>
                 </div>
 
@@ -397,7 +396,7 @@ function App() {
                     © 2025 Companhia do Metropolitano de São Paulo - Metrô
                 </p>
                 <p className="text-xs text-gray-400 mt-2 md:mt-0 md:absolute md:right-0">
-                   Versão: 1.0.2
+                   Versão: 1.0.3
                 </p>
             </div>
             {/* Connection Status Line */}

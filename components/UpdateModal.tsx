@@ -113,19 +113,45 @@ export const UpdateModal: React.FC<Props> = ({ vehicle, onClose, onUpdate, curre
   const [operatorName, setOperatorName] = useState('');
   const [registration, setRegistration] = useState('');
 
-  // Helper to remove accents and lowercase for Names
+  // Get lists for autocomplete/search
+  const knownOperators = Object.keys(OPERATOR_REGISTRY);
+  const knownRegistrations = Object.values(OPERATOR_REGISTRY);
+
+  // Helper to remove accents, special chars and lowercase for Names
+  // Strips dashes, spaces, dots, etc. for fuzzy matching
   const normalizeString = (str: string) => {
     return str
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "")
-      .toLowerCase()
-      .trim();
+      .replace(/[^a-zA-Z0-9]/g, "") 
+      .toLowerCase();
   };
 
   // Helper to remove EVERYTHING except letters and numbers for Registration
   // Removes dots, dashes, slashes, spaces, etc.
   const normalizeRegistration = (str: string) => {
     return str.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+  };
+
+  const handleOperatorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = e.target.value;
+    const isAdding = newValue.length > operatorName.length;
+    
+    setOperatorName(newValue);
+
+    // Auto-complete logic: 
+    // If the user is typing (adding characters) and we have a sufficient length (>=3)
+    // and there is EXACTLY one match in the registry starting with the input, auto-fill it.
+    if (isAdding && newValue.length >= 3) {
+        const normalizedInput = normalizeString(newValue);
+        const matches = knownOperators.filter(op => 
+            normalizeString(op).startsWith(normalizedInput)
+        );
+        
+        if (matches.length === 1) {
+            setOperatorName(matches[0]);
+        }
+    }
   };
 
   // Effect 1: Auto-fill registration when Operator Name changes
@@ -166,10 +192,6 @@ export const UpdateModal: React.FC<Props> = ({ vehicle, onClose, onUpdate, curre
         if (matchedName !== operatorName) {
             setOperatorName(matchedName);
         }
-        
-        // REMOVED: Forced registration update.
-        // Previously, this would force the full formatted registration back into the field
-        // preventing the user from backspacing/editing if they matched the 5-digit rule.
     }
   }, [registration]);
 
@@ -178,9 +200,6 @@ export const UpdateModal: React.FC<Props> = ({ vehicle, onClose, onUpdate, curre
     if (operatorName.trim() === '' || registration.trim() === '') return;
     onUpdate(vehicle.id, selectedLocation, operatorName, registration);
   };
-
-  // Get list of known registrations for autocomplete
-  const knownRegistrations = Object.values(OPERATOR_REGISTRY);
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -213,8 +232,31 @@ export const UpdateModal: React.FC<Props> = ({ vehicle, onClose, onUpdate, curre
             </select>
           </div>
 
-          <div className="grid grid-cols-3 gap-4">
-            {/* Registration Field (Left - 1 col) */}
+          <div className="grid grid-cols-4 gap-4">
+            {/* Operator Field (Left - 3 cols) */}
+            <div className="col-span-3">
+              <label htmlFor="operator" className="block text-sm font-medium text-gray-700 mb-1">
+                Alterado por
+              </label>
+              <input
+                type="text"
+                id="operator"
+                list="operator-suggestions"
+                required
+                className="w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-metro-blue focus:border-metro-blue bg-white"
+                value={operatorName}
+                onChange={handleOperatorChange}
+                placeholder="Nome"
+                autoComplete="off"
+              />
+              <datalist id="operator-suggestions">
+                {knownOperators.map((name) => (
+                  <option key={name} value={name} />
+                ))}
+              </datalist>
+            </div>
+
+            {/* Registration Field (Right - 1 col) */}
             <div className="col-span-1">
               <label htmlFor="registration" className="block text-sm font-medium text-gray-700 mb-1">
                 Registro
@@ -236,22 +278,6 @@ export const UpdateModal: React.FC<Props> = ({ vehicle, onClose, onUpdate, curre
                   <option key={reg} value={reg} />
                 ))}
               </datalist>
-            </div>
-
-            {/* Operator Field (Right - 2 cols) */}
-            <div className="col-span-2">
-              <label htmlFor="operator" className="block text-sm font-medium text-gray-700 mb-1">
-                Operador
-              </label>
-              <input
-                type="text"
-                id="operator"
-                required
-                className="w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-metro-blue focus:border-metro-blue bg-white"
-                value={operatorName}
-                onChange={(e) => setOperatorName(e.target.value)}
-                placeholder="Nome"
-              />
             </div>
           </div>
 
