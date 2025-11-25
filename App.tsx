@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect } from 'react';
 import { MetroLogo } from './components/MetroLogo';
 import { AVAILABLE_LOCATIONS } from './constants';
@@ -34,7 +35,7 @@ function App() {
       }
       
       const v = await getVehicles();
-      const EXCLUDED_IDS = ['ME 12', 'TV 01', 'VF 12'];
+      const EXCLUDED_IDS = ['ME 12', 'TV 01', 'VF 12', 'ME 09'];
       setVehicles(v.filter(veh => !EXCLUDED_IDS.includes(veh.id)));
       
       const h = await getHistory();
@@ -284,7 +285,7 @@ function App() {
                 'TV 273': 'Caminhão Socorro',
                 'TV 277': 'Caminhão Ultrassom',
                 'VF 01': 'Gôndola Pipa',
-                'VF 03': 'Vagão Ferroviário com Pórtico',
+                'VF 03': 'Vagão Ferroviário com Gaiola',
                 'VF 04': 'Gôndola de Solda',
                 'VF 06': 'Vagão Ferroviário',
                 'VF 07': 'Vagão Ferroviário',
@@ -396,7 +397,7 @@ function App() {
                     © 2025 Companhia do Metropolitano de São Paulo - Metrô
                 </p>
                 <p className="text-xs text-gray-400 mt-2 md:mt-0 md:absolute md:right-0">
-                   Versão: 1.0.1
+                   Versão: 1.0.2
                 </p>
             </div>
             {/* Connection Status Line */}

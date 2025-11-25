@@ -1,4 +1,5 @@
 
+
 import { LocationEnum, Vehicle, VehicleStatus } from './types';
 
 // =================================================================
@@ -190,15 +191,6 @@ export const INITIAL_VEHICLES: Vehicle[] = [
     lastUpdate: new Date().toISOString(),
     status: VehicleStatus.OPERATION,
     registration: 'REG-016',
-  },
-  {
-    id: 'ME 09',
-    lastLocation: null,
-    currentLocation: LocationEnum.PAT,
-    operator: 'Sistema',
-    lastUpdate: new Date().toISOString(),
-    status: VehicleStatus.OPERATION,
-    registration: 'REG-017',
   },
   {
     id: 'ME 15',
