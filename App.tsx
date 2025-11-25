@@ -281,9 +281,10 @@ function App() {
                 'ME 10': 'Esmerilhador Elétrico',
                 'ME 13': 'Auto de Linha',
                 'ME 15': 'Esmerilhador a Diesel HARSCO',
+                'TV 273': 'Caminhão Socorro',
                 'TV 277': 'Caminhão Ultrassom',
                 'VF 01': 'Gôndola Pipa',
-                'VF 03': 'Vagão Ferroviário com Gaiola',
+                'VF 03': 'Vagão Ferroviário com Pórtico',
                 'VF 04': 'Gôndola de Solda',
                 'VF 06': 'Vagão Ferroviário',
                 'VF 07': 'Vagão Ferroviário',
@@ -395,7 +396,7 @@ function App() {
                     © 2025 Companhia do Metropolitano de São Paulo - Metrô
                 </p>
                 <p className="text-xs text-gray-400 mt-2 md:mt-0 md:absolute md:right-0">
-                   Versão: 1.0.0
+                   Versão: 1.0.1
                 </p>
             </div>
             {/* Connection Status Line */}

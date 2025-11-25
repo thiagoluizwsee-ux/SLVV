@@ -13,6 +13,8 @@ export enum LocationEnum {
   TM_02_LUZ = 'TM 02 de LUZ',
   TM_02_ANR = 'TM 02 de ANR',
   OFICINA = 'Oficina',
+  EPB_1 = 'EPB I',
+  EPB_2 = 'EPB II',
 }
 
 export enum VehicleStatus {

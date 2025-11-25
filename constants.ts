@@ -22,7 +22,10 @@ export const AVAILABLE_LOCATIONS = [
   LocationEnum.ECL_3,
   LocationEnum.ECL_4,
   LocationEnum.PIT,
+  LocationEnum.EPB_1,
+  LocationEnum.EPB_2,
   LocationEnum.OFICINA,
+
 ];
 
 export const INITIAL_VEHICLES: Vehicle[] = [
@@ -295,5 +298,32 @@ export const INITIAL_VEHICLES: Vehicle[] = [
     lastUpdate: new Date().toISOString(),
     status: VehicleStatus.OPERATION,
     registration: 'REG-031',
+  },
+  {
+    id: 'TV 219',
+    lastLocation: null,
+    currentLocation: LocationEnum.PAT,
+    operator: 'Sistema',
+    lastUpdate: new Date().toISOString(),
+    status: VehicleStatus.OPERATION,
+    registration: 'REG-032',
+  },
+  {
+    id: 'TV 203',
+    lastLocation: null,
+    currentLocation: LocationEnum.PAT,
+    operator: 'Sistema',
+    lastUpdate: new Date().toISOString(),
+    status: VehicleStatus.OPERATION,
+    registration: 'REG-033',
+  },
+  {
+    id: 'TV 273',
+    lastLocation: null,
+    currentLocation: LocationEnum.PAT,
+    operator: 'Sistema',
+    lastUpdate: new Date().toISOString(),
+    status: VehicleStatus.OPERATION,
+    registration: 'REG-034',
   },
 ];
