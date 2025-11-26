@@ -1,12 +1,19 @@
+
 import React, { useState, useEffect } from 'react';
 import { MetroLogo } from './components/MetroLogo';
 import { AVAILABLE_LOCATIONS } from './constants';
 import { Vehicle, LocationEnum, VehicleStatus, HistoryLog, DataMode } from './types';
 import { UpdateModal } from './components/UpdateModal';
+import { StatusModal } from './components/StatusModal';
 import { HistoryView } from './components/HistoryView';
 import { initDataService, getVehicles, getHistory, saveVehicle, addHistoryLog } from './services/dataService';
 
 const CHANGELOG = [
+  { 
+    date: '26/11/2025', 
+    version: '1.0.6', 
+    desc: "Atualizado modo manutenção:\n- Ao clicar em 'Manutenção' e 'Finalizar Manutenção' inserir dados de Nome e Registro\n- Inseridas ações 'Liberado' e 'Retido' com identidades visuais ao alterar para modo 'Manutenção'\n- Ao Finalizar Manutenção a localização do veículo passa a ser PAT" 
+  },
   { date: '26/11/2025', version: '1.0.5', desc: "Adicionado campo 'Posição de Entrada' ao selecionar as localizações: Ramal 5 ou Ramal 6" },
   { date: '25/11/2025', version: '1.0.4', desc: "Adicionadas descrições ao lado dos Veículos" },
   { date: '24/11/2025', version: '1.0.3', desc: "Adicionados veículos: TV 203 e TV 217" },
@@ -24,6 +31,7 @@ function App() {
 
   const [currentUser, setCurrentUser] = useState<string>('Sistema');
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
+  const [selectedVehicleForStatus, setSelectedVehicleForStatus] = useState<Vehicle | null>(null);
   const [showHistory, setShowHistory] = useState<boolean>(false);
   const [showChangelog, setShowChangelog] = useState<boolean>(false);
   const [historyFilter, setHistoryFilter] = useState<string | null>(null);
@@ -107,7 +115,7 @@ function App() {
     }
   };
 
-  const toggleStatus = async (vehicleId: string) => {
+  const handleStatusChange = async (vehicleId: string, operator: string, registration: string) => {
      const updatedVehicles = vehicles.map(v => {
       if (v.id === vehicleId) {
         const isEnteringMaintenance = v.status === VehicleStatus.OPERATION;
@@ -121,6 +129,10 @@ function App() {
         if (isEnteringMaintenance) {
           lastLocation = v.currentLocation;
           newLocation = LocationEnum.OFICINA;
+        } else {
+          // Returning to Operation -> Move to PAT
+          lastLocation = v.currentLocation;
+          newLocation = LocationEnum.PAT;
         }
 
         return {
@@ -128,6 +140,8 @@ function App() {
           status: newStatus,
           currentLocation: newLocation,
           lastLocation: lastLocation,
+          operator: operator,
+          registration: registration,
           lastUpdate: new Date().toISOString()
         };
       }
@@ -138,6 +152,7 @@ function App() {
     const oldVehicle = vehicles.find(v => v.id === vehicleId);
 
     setVehicles(updatedVehicles);
+    setSelectedVehicleForStatus(null); // Close modal
 
     if (targetVehicle && oldVehicle) {
         await saveVehicle(targetVehicle);
@@ -145,6 +160,8 @@ function App() {
         let details = `Alterado para ${targetVehicle.status}`;
         if (targetVehicle.status === VehicleStatus.MAINTENANCE) {
              details += ` (Movido para ${LocationEnum.OFICINA})`;
+        } else {
+             details += ` (Movido para ${LocationEnum.PAT})`;
         }
 
         const log: HistoryLog = {
@@ -152,10 +169,11 @@ function App() {
           vehicleId: targetVehicle.id,
           previousLocation: oldVehicle.currentLocation,
           newLocation: targetVehicle.currentLocation,
-          operator: currentUser, 
+          operator: operator, 
           timestamp: new Date().toISOString(),
           actionType: 'STATUS_CHANGE',
-          details: details
+          details: details,
+          registration: registration
         };
         
         setHistory(prev => [log, ...prev]);
@@ -390,14 +408,14 @@ function App() {
                       Ver Histórico
                     </button>
                     <button
-                      onClick={() => toggleStatus(vehicle.id)}
+                      onClick={() => setSelectedVehicleForStatus(vehicle)}
                       className={`flex-1 py-2 px-4 rounded transition text-sm font-medium border ${
                         isMaintenance 
                         ? 'bg-white text-red-700 border-red-200 hover:bg-red-50' 
                         : 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100'
                       }`}
                     >
-                      {isMaintenance ? 'Finalizar Manut.' : 'Manutenção'}
+                      {isMaintenance ? 'Finalizar Manutenção' : 'Manutenção'}
                     </button>
                   </div>
                 </div>
@@ -423,7 +441,7 @@ function App() {
                   onClick={() => setShowChangelog(true)}
                   className="text-xs text-gray-400 mt-2 md:mt-0 md:absolute md:right-0 hover:text-metro-blue transition-colors focus:outline-none"
                 >
-                   Versão: 1.0.5
+                   Versão: 1.0.6
                 </button>
             </div>
             {/* Connection Status Line */}
@@ -454,7 +472,7 @@ function App() {
                                 <span className="font-bold text-gray-800 text-sm">Versão {log.version}</span>
                                 <span className="text-xs text-gray-500">{log.date}</span>
                             </div>
-                            <p className="text-sm text-gray-600 leading-relaxed">{log.desc}</p>
+                            <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-line">{log.desc}</p>
                         </div>
                     ))}
                 </div>
@@ -468,6 +486,14 @@ function App() {
           currentUser={currentUser}
           onClose={() => setSelectedVehicle(null)}
           onUpdate={handleUpdateLocation}
+        />
+      )}
+
+      {selectedVehicleForStatus && (
+        <StatusModal
+          vehicle={selectedVehicleForStatus}
+          onClose={() => setSelectedVehicleForStatus(null)}
+          onConfirm={handleStatusChange}
         />
       )}
 

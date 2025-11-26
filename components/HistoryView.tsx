@@ -24,7 +24,19 @@ export const HistoryView: React.FC<Props> = ({ logs, onClose, vehicleFilter }) =
 
     // 2. Column Filters
     const dateStr = new Date(log.timestamp).toLocaleString('pt-BR').toLowerCase();
-    const actionLabel = log.actionType === 'LOCATION_UPDATE' ? 'movimentação' : 'status';
+    
+    // Determine action label for filtering
+    let actionLabel = '';
+    if (log.actionType === 'LOCATION_UPDATE') {
+        actionLabel = 'movimentação';
+    } else {
+        // Check details to distinguish between Retido (Manutenção) and Liberado (Em Operação)
+        if (log.details?.includes('Manutenção')) {
+            actionLabel = 'retido manutenção';
+        } else {
+            actionLabel = 'liberado status em operação';
+        }
+    }
     
     // Normalize helper - Strips accents AND special chars/spaces for fuzzy filtering
     const norm = (str: string) => str ? str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "") : "";
@@ -92,11 +104,19 @@ export const HistoryView: React.FC<Props> = ({ logs, onClose, vehicleFilter }) =
                       {log.vehicleId}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        log.actionType === 'LOCATION_UPDATE' ? 'bg-blue-100 text-blue-800' : 'bg-yellow-100 text-yellow-800'
-                      }`}>
-                        {log.actionType === 'LOCATION_UPDATE' ? 'Movimentação' : 'Status'}
-                      </span>
+                      {log.actionType === 'LOCATION_UPDATE' ? (
+                        <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                          Movimentação
+                        </span>
+                      ) : (
+                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                          log.details?.includes('Manutenção') 
+                            ? 'bg-red-100 text-red-800' // Retido
+                            : 'bg-green-100 text-green-800' // Liberado
+                        }`}>
+                          {log.details?.includes('Manutenção') ? 'Retido' : 'Liberado'}
+                        </span>
+                      )}
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-700">
                        {log.actionType === 'LOCATION_UPDATE' 
