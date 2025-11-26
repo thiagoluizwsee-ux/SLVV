@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { HistoryLog } from '../types';
 
@@ -101,7 +100,7 @@ export const HistoryView: React.FC<Props> = ({ logs, onClose, vehicleFilter }) =
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-700">
                        {log.actionType === 'LOCATION_UPDATE' 
-                         ? `${log.previousLocation || 'N/A'} ➝ ${log.newLocation}`
+                         ? `${(log.previousLocation || 'N/A').split(' - ')[0]} ➝ ${log.newLocation.split(' - ')[0]}`
                          : log.details}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">

@@ -6,6 +6,15 @@ import { UpdateModal } from './components/UpdateModal';
 import { HistoryView } from './components/HistoryView';
 import { initDataService, getVehicles, getHistory, saveVehicle, addHistoryLog } from './services/dataService';
 
+const CHANGELOG = [
+  { date: '26/11/2025', version: '1.0.5', desc: "Adicionado campo 'Posição de Entrada' ao selecionar as localizações: Ramal 5 ou Ramal 6" },
+  { date: '25/11/2025', version: '1.0.4', desc: "Adicionadas descrições ao lado dos Veículos" },
+  { date: '24/11/2025', version: '1.0.3', desc: "Adicionados veículos: TV 203 e TV 217" },
+  { date: '21/11/2025', version: '1.0.2', desc: "Preenchimento automático de nome e registro" },
+  { date: '20/11/2025', version: '1.0.1', desc: "Botão manutenção com sistema de cores e ferramenta" },
+  { date: '19/11/2025', version: '1.0.0', desc: "Criação do SLVV" },
+];
+
 function App() {
   // State
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
@@ -16,6 +25,7 @@ function App() {
   const [currentUser, setCurrentUser] = useState<string>('Sistema');
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
   const [showHistory, setShowHistory] = useState<boolean>(false);
+  const [showChangelog, setShowChangelog] = useState<boolean>(false);
   const [historyFilter, setHistoryFilter] = useState<string | null>(null);
 
   // Filter States
@@ -325,11 +335,25 @@ function App() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <p className={`text-xs uppercase tracking-wide ${isMaintenance ? 'text-red-500' : 'text-gray-500'}`}>Local Atual</p>
-                    <p className={`text-lg font-bold ${isMaintenance ? 'text-red-700' : 'text-gray-900'}`}>{vehicle.currentLocation}</p>
+                    <p className={`text-lg font-bold ${isMaintenance ? 'text-red-700' : 'text-gray-900'}`}>
+                      {(() => {
+                        if (vehicle.currentLocation.startsWith('Ramal 5 - ') || vehicle.currentLocation.startsWith('Ramal 6 - ')) {
+                          const [base, pos] = vehicle.currentLocation.split(' - ');
+                          return (
+                            <span>
+                              {base} <span className="text-sm text-metro-blue font-bold whitespace-nowrap">(Pos: {pos})</span>
+                            </span>
+                          );
+                        }
+                        return vehicle.currentLocation;
+                      })()}
+                    </p>
                   </div>
                   <div className="pl-[4.5rem]">
                     <p className={`text-xs uppercase tracking-wide ${isMaintenance ? 'text-red-500' : 'text-gray-500'}`}>Último Local</p>
-                    <p className={`text-sm font-medium ${isMaintenance ? 'text-red-600' : 'text-gray-600'}`}>{vehicle.lastLocation || '-'}</p>
+                    <p className={`text-sm font-medium ${isMaintenance ? 'text-red-600' : 'text-gray-600'}`}>
+                        {vehicle.lastLocation ? vehicle.lastLocation.split(' - ')[0] : '-'}
+                    </p>
                   </div>
                   {/* Swapped Fields: Operator first, then Registration */}
                   <div>
@@ -395,9 +419,12 @@ function App() {
                 <p className="text-sm text-gray-500">
                     © 2025 Companhia do Metropolitano de São Paulo - Metrô
                 </p>
-                <p className="text-xs text-gray-400 mt-2 md:mt-0 md:absolute md:right-0">
-                   Versão: 1.0.4
-                </p>
+                <button 
+                  onClick={() => setShowChangelog(true)}
+                  className="text-xs text-gray-400 mt-2 md:mt-0 md:absolute md:right-0 hover:text-metro-blue transition-colors focus:outline-none"
+                >
+                   Versão: 1.0.5
+                </button>
             </div>
             {/* Connection Status Line */}
             <div className="flex justify-center items-center text-xs text-gray-400 gap-2 mt-2">
@@ -408,6 +435,32 @@ function App() {
             </div>
         </div>
       </footer>
+
+      {/* Changelog Modal */}
+      {showChangelog && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setShowChangelog(false)}>
+            <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6 m-4 relative" onClick={e => e.stopPropagation()}>
+                <button 
+                    onClick={() => setShowChangelog(false)}
+                    className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 focus:outline-none"
+                >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+                <h2 className="text-xl font-bold text-metro-blue mb-4">Histórico de Versões</h2>
+                <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
+                    {CHANGELOG.map((log, idx) => (
+                        <div key={idx} className="border-b border-gray-100 pb-2 last:border-0 last:pb-0">
+                            <div className="flex justify-between items-baseline mb-1">
+                                <span className="font-bold text-gray-800 text-sm">Versão {log.version}</span>
+                                <span className="text-xs text-gray-500">{log.date}</span>
+                            </div>
+                            <p className="text-sm text-gray-600 leading-relaxed">{log.desc}</p>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </div>
+      )}
 
       {selectedVehicle && (
         <UpdateModal

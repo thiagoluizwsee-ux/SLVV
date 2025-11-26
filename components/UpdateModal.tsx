@@ -109,13 +109,41 @@ interface Props {
 }
 
 export const UpdateModal: React.FC<Props> = ({ vehicle, onClose, onUpdate, currentUser }) => {
-  const [selectedLocation, setSelectedLocation] = useState<LocationEnum>(vehicle.currentLocation);
+  // Logic to parse existing location (e.g., "Ramal 5 - 1°")
+  const parseLocation = (loc: string) => {
+    const parts = loc.split(' - ');
+    const base = parts[0];
+    const pos = parts[1] || '';
+    
+    // If the base matches a known entry location, return split values
+    if (base === LocationEnum.RAMAL_5 || base === LocationEnum.RAMAL_6) {
+        return { base: base as LocationEnum, pos };
+    }
+    // Otherwise return original as base
+    return { base: loc as LocationEnum, pos: '' };
+  };
+
+  const { base: initialBase, pos: initialPos } = parseLocation(vehicle.currentLocation);
+
+  const [selectedLocation, setSelectedLocation] = useState<LocationEnum>(initialBase);
+  const [entryPosition, setEntryPosition] = useState(initialPos);
+  
   const [operatorName, setOperatorName] = useState('');
   const [registration, setRegistration] = useState('');
 
   // Get lists for autocomplete/search
   const knownOperators = Object.keys(OPERATOR_REGISTRY);
   const knownRegistrations = Object.values(OPERATOR_REGISTRY);
+
+  const showEntryPosition = selectedLocation === LocationEnum.RAMAL_5 || selectedLocation === LocationEnum.RAMAL_6;
+  const entryPositions = ['1°', '2°', '3°', '4°', '5°'];
+
+  // Clear entry position if switching to a location that doesn't support it
+  useEffect(() => {
+    if (!showEntryPosition) {
+        setEntryPosition('');
+    }
+  }, [selectedLocation, showEntryPosition]);
 
   // Helper to remove accents, special chars and lowercase for Names
   // Strips dashes, spaces, dots, etc. for fuzzy matching
@@ -198,7 +226,13 @@ export const UpdateModal: React.FC<Props> = ({ vehicle, onClose, onUpdate, curre
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (operatorName.trim() === '' || registration.trim() === '') return;
-    onUpdate(vehicle.id, selectedLocation, operatorName, registration);
+
+    let finalLocation: any = selectedLocation;
+    if (showEntryPosition && entryPosition) {
+        finalLocation = `${selectedLocation} - ${entryPosition}`;
+    }
+
+    onUpdate(vehicle.id, finalLocation, operatorName, registration);
   };
 
   return (
@@ -214,22 +248,44 @@ export const UpdateModal: React.FC<Props> = ({ vehicle, onClose, onUpdate, curre
             <div className="p-2 bg-gray-100 rounded text-gray-600">{vehicle.currentLocation}</div>
           </div>
 
-          <div>
-            <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-1">
-              Nova Localização
-            </label>
-            <select
-              id="location"
-              className="w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-metro-blue focus:border-metro-blue bg-white"
-              value={selectedLocation}
-              onChange={(e) => setSelectedLocation(e.target.value as LocationEnum)}
-            >
-              {AVAILABLE_LOCATIONS.map((loc) => (
-                <option key={loc} value={loc} disabled={loc === vehicle.currentLocation}>
-                  {loc}
-                </option>
-              ))}
-            </select>
+          <div className="grid grid-cols-12 gap-4">
+            <div className={showEntryPosition ? "col-span-8" : "col-span-12"}>
+                <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-1">
+                Nova Localização
+                </label>
+                <select
+                id="location"
+                className="w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-metro-blue focus:border-metro-blue bg-white"
+                value={selectedLocation}
+                onChange={(e) => setSelectedLocation(e.target.value as LocationEnum)}
+                >
+                {AVAILABLE_LOCATIONS.map((loc) => (
+                    <option key={loc} value={loc} disabled={loc === vehicle.currentLocation}>
+                    {loc}
+                    </option>
+                ))}
+                </select>
+            </div>
+            
+            {showEntryPosition && (
+                <div className="col-span-4">
+                    <label htmlFor="entryPosition" className="block text-sm font-medium text-gray-700 mb-1">
+                    Posição de Entrada
+                    </label>
+                    <select
+                        id="entryPosition"
+                        className="w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-metro-blue focus:border-metro-blue bg-white"
+                        value={entryPosition}
+                        onChange={(e) => setEntryPosition(e.target.value)}
+                        required
+                    >
+                        <option value="">Selecione...</option>
+                        {entryPositions.map((pos) => (
+                            <option key={pos} value={pos}>{pos}</option>
+                        ))}
+                    </select>
+                </div>
+            )}
           </div>
 
           <div className="grid grid-cols-4 gap-4">
