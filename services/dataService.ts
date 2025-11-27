@@ -1,16 +1,35 @@
 
 import { INITIAL_VEHICLES, SUPABASE_KEY, SUPABASE_URL } from "../constants";
 import { DataMode, HistoryLog, Vehicle } from "../types";
-import { createClient } from "@supabase/supabase-js";
+
+// Helper for safe LocalStorage access (Firefox throws errors in strict mode/iframes)
+const safeStorage = {
+  getItem: (key: string) => {
+    try {
+      return localStorage.getItem(key);
+    } catch (e) {
+      console.warn('LocalStorage access denied (Firefox Strict Mode?):', e);
+      return null;
+    }
+  },
+  setItem: (key: string, value: string) => {
+    try {
+      localStorage.setItem(key, value);
+    } catch (e) {
+      console.warn('LocalStorage write denied (Firefox Strict Mode?):', e);
+    }
+  }
+};
 
 let supabaseClient: any = null;
 let currentMode: DataMode = 'LOCAL';
 
 export const initDataService = (): DataMode => {
-  if (SUPABASE_URL && SUPABASE_KEY) {
+  if (window.supabase && SUPABASE_URL && SUPABASE_KEY) {
     try {
-      // Configuração explícita para evitar uso de localStorage/cookies que o Firefox pode bloquear
-      supabaseClient = createClient(SUPABASE_URL, SUPABASE_KEY, {
+      // Use global window.supabase
+      // persistSession: false is CRITICAL for Firefox to avoid localStorage blocking issues in auth
+      supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
         auth: {
           persistSession: false,
           autoRefreshToken: false,
@@ -18,7 +37,7 @@ export const initDataService = (): DataMode => {
         }
       });
       currentMode = 'CLOUD';
-      console.log("Conectado ao Supabase (Modo Nuvem - Sem Persistência)");
+      console.log("Conectado ao Supabase (Modo Nuvem - Global Script)");
     } catch (error) {
       console.error("Falha ao conectar Supabase, revertendo para local:", error);
       currentMode = 'LOCAL';
@@ -32,7 +51,7 @@ export const initDataService = (): DataMode => {
 
 // Helper to get local vehicles
 const getLocalVehiclesData = (): Vehicle[] => {
-  const saved = localStorage.getItem('metro_vehicles');
+  const saved = safeStorage.getItem('metro_vehicles');
   const localVehicles = saved ? JSON.parse(saved) : INITIAL_VEHICLES;
   
   const merged = [...localVehicles];
@@ -78,8 +97,8 @@ export const getVehicles = async (): Promise<Vehicle[]> => {
 };
 
 export const saveVehicle = async (vehicle: Vehicle) => {
-  // Salvar Localmente (Backup/Instantâneo)
-  const saved = localStorage.getItem('metro_vehicles');
+  // Salvar Localmente (Backup/Instantâneo) - usando safeStorage
+  const saved = safeStorage.getItem('metro_vehicles');
   let vehicles = saved ? JSON.parse(saved) : INITIAL_VEHICLES;
   const index = vehicles.findIndex((v: Vehicle) => v.id === vehicle.id);
   if (index >= 0) {
@@ -87,7 +106,7 @@ export const saveVehicle = async (vehicle: Vehicle) => {
   } else {
     vehicles.push(vehicle);
   }
-  localStorage.setItem('metro_vehicles', JSON.stringify(vehicles));
+  safeStorage.setItem('metro_vehicles', JSON.stringify(vehicles));
 
   // Salvar na Nuvem
   if (currentMode === 'CLOUD' && supabaseClient) {
@@ -105,7 +124,7 @@ export const saveVehicle = async (vehicle: Vehicle) => {
 
 export const getHistory = async (): Promise<HistoryLog[]> => {
     // 1. Local Load (Always fast fallback)
-    const localSaved = localStorage.getItem('metro_history');
+    const localSaved = safeStorage.getItem('metro_history');
     let localLogs = localSaved ? JSON.parse(localSaved) : [];
 
     // 2. Cloud Load (Sync)
@@ -125,7 +144,7 @@ export const getHistory = async (): Promise<HistoryLog[]> => {
                 }));
                 
                 // Update Local Cache with Cloud Data
-                localStorage.setItem('metro_history', JSON.stringify(cloudLogs));
+                safeStorage.setItem('metro_history', JSON.stringify(cloudLogs));
                 return cloudLogs;
             } else if (error) {
                 console.error("Erro getHistory API:", error);
@@ -140,10 +159,10 @@ export const getHistory = async (): Promise<HistoryLog[]> => {
 
 export const addHistoryLog = async (log: HistoryLog) => {
     // 1. Save Local
-    const saved = localStorage.getItem('metro_history');
+    const saved = safeStorage.getItem('metro_history');
     const history = saved ? JSON.parse(saved) : [];
     history.push(log);
-    localStorage.setItem('metro_history', JSON.stringify(history));
+    safeStorage.setItem('metro_history', JSON.stringify(history));
 
     // 2. Save Cloud (New Schema: ID is Primary Key)
     if (currentMode === 'CLOUD' && supabaseClient) {
@@ -167,11 +186,11 @@ export const deleteHistoryLog = async (logId: string, rowId?: string): Promise<b
     console.log(`[Delete] Excluindo ID: ${logId}`);
 
     // 1. DELETE LOCAL (Instant UI feedback)
-    const saved = localStorage.getItem('metro_history');
+    const saved = safeStorage.getItem('metro_history');
     if (saved) {
         let history = JSON.parse(saved) as HistoryLog[];
         history = history.filter(log => log.id !== logId);
-        localStorage.setItem('metro_history', JSON.stringify(history));
+        safeStorage.setItem('metro_history', JSON.stringify(history));
     }
 
     // 2. DELETE CLOUD (Direct ID Match - Infallible)

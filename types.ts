@@ -1,4 +1,10 @@
 
+declare global {
+  interface Window {
+    supabase: any;
+  }
+}
+
 export enum LocationEnum {
   PAT = 'PAT',
   ETC_5 = 'ETC 5',
