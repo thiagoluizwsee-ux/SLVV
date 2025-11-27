@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { MetroLogo } from './components/MetroLogo';
 import { AVAILABLE_LOCATIONS } from './constants';
@@ -257,7 +256,7 @@ function App() {
     <div className="min-h-screen bg-gray-100 flex flex-col">
       {/* Header */}
       <header className="bg-metro-blue shadow-lg sticky top-0 z-30 py-4">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-4">
+        <div className="max-w-[90rem] mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-4">
           <div className="flex items-center gap-4 md:gap-6 w-full md:w-auto">
             <MetroLogo className="shrink-0" />
             <h1 className="text-white text-sm sm:text-base md:text-lg font-medium tracking-wide leading-tight opacity-90 hidden sm:block border-l border-white/30 pl-6 h-10 flex items-center">
@@ -276,7 +275,7 @@ function App() {
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="flex-1 max-w-[90rem] w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
         
         {/* Search and Filter Bar */}
         <div className="mb-8 bg-white p-2 rounded-lg shadow-sm border border-gray-200 flex flex-col sm:flex-row items-center gap-2">
@@ -367,9 +366,9 @@ function App() {
               </div>
 
               {/* Card Body */}
-              <div className="p-4 space-y-4">
+              <div className="p-6 space-y-3">
                 {/* Grid cols 2 to balance swapped fields */}
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-6">
                   <div>
                     <p className={`text-xs uppercase tracking-wide ${isMaintenance ? 'text-red-500' : 'text-gray-500'}`}>Local Atual</p>
                     <p className={`text-lg font-bold ${isMaintenance ? 'text-red-700' : 'text-gray-900'}`}>
@@ -393,11 +392,11 @@ function App() {
                     </p>
                   </div>
                   {/* Swapped Fields: Operator first, then Registration */}
-                  <div>
+                  <div className="mt-6">
                     <p className={`text-xs uppercase tracking-wide ${isMaintenance ? 'text-red-500' : 'text-gray-500'}`}>Alterado por</p>
                     <p className={`text-sm font-medium truncate ${isMaintenance ? 'text-red-800' : 'text-gray-800'}`} title={vehicle.operator}>{vehicle.operator}</p>
                   </div>
-                  <div className="pl-[4.5rem]">
+                  <div className="pl-[4.5rem] mt-6">
                     <p className={`text-xs uppercase tracking-wide ${isMaintenance ? 'text-red-500' : 'text-gray-500'}`}>Registro</p>
                     <p className={`text-sm font-medium truncate ${isMaintenance ? 'text-red-800' : 'text-gray-800'}`} title={vehicle.registration}>{vehicle.registration}</p>
                   </div>
@@ -412,7 +411,7 @@ function App() {
                   </div>
                 )}
 
-                <div className="flex flex-col space-y-2 pt-4">
+                <div className="flex flex-col space-y-2 pt-0">
                   <button
                     onClick={() => setSelectedVehicle(vehicle)}
                     className="w-full bg-metro-blue text-white py-2 px-4 rounded hover:bg-blue-800 transition font-medium flex justify-center items-center"
@@ -459,7 +458,7 @@ function App() {
       </main>
 
       <footer className="bg-white border-t border-gray-200 mt-auto py-6">
-        <div className="max-w-7xl mx-auto px-4 relative flex flex-col items-center justify-center">
+        <div className="max-w-[90rem] mx-auto px-4 relative flex flex-col items-center justify-center">
             {/* Copyright and Version Line */}
             <div className="w-full flex flex-col md:flex-row items-center justify-center relative">
                 <p className="text-sm text-gray-500">
