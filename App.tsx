@@ -10,6 +10,11 @@ import { initDataService, getVehicles, getHistory, saveVehicle, addHistoryLog } 
 
 const CHANGELOG = [
   {
+    date: '27/11/2025',
+    version: '1.0.8',
+    desc: "- Ao inserir observação no modo Manutenção o texto aparecerá no card e no histórico"
+  },
+  {
     date: '26/11/2025',
     version: '1.0.7',
     desc: "- Modificado texto nos cards de 'Pos:' para 'Posição de Entrada:'\n- Corrigido erro ao buscar veículos com posições nos Ramais 5 e 6\n- Adicionado campo opcional 'Observação' ao clicar em 'Manutenção' e 'Finalizar Manutenção'"
@@ -147,6 +152,7 @@ function App() {
           lastLocation: lastLocation,
           operator: operator,
           registration: registration,
+          observation: observation, // Persist observation
           lastUpdate: new Date().toISOString()
         };
       }
@@ -397,6 +403,15 @@ function App() {
                   </div>
                 </div>
 
+                {/* Observation Field Display */}
+                {vehicle.observation && (
+                  <div className="mt-2">
+                    <p className={`text-sm italic ${isMaintenance ? 'text-red-700' : 'text-gray-500'}`}>
+                      <span className="font-bold not-italic">Obs:</span> {vehicle.observation}
+                    </p>
+                  </div>
+                )}
+
                 <div className="flex flex-col space-y-2 pt-4">
                   <button
                     onClick={() => setSelectedVehicle(vehicle)}
@@ -454,7 +469,7 @@ function App() {
                   onClick={() => setShowChangelog(true)}
                   className="text-xs text-gray-400 mt-2 md:mt-0 md:absolute md:right-0 hover:text-metro-blue transition-colors focus:outline-none"
                 >
-                   Versão: 1.0.7
+                   Versão: 1.0.8
                 </button>
             </div>
             {/* Connection Status Line */}
