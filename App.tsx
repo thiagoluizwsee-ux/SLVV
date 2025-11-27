@@ -406,7 +406,7 @@ function App() {
                 {/* Observation Field Display */}
                 {vehicle.observation && (
                   <div className="mt-2">
-                    <p className={`text-sm italic ${isMaintenance ? 'text-red-700' : 'text-gray-500'}`}>
+                    <p className={`text-xs italic ${isMaintenance ? 'text-red-700' : 'text-gray-500'}`}>
                       <span className="font-bold not-italic">Obs:</span> {vehicle.observation}
                     </p>
                   </div>
