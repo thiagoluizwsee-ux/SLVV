@@ -10,6 +10,11 @@ import { initDataService, getVehicles, getHistory, saveVehicle, addHistoryLog } 
 const CHANGELOG = [
   {
     date: '27/11/2025',
+    version: '1.0.9',
+    desc: "- Redimensionamento do tamanho dos cards"
+  },
+  {
+    date: '27/11/2025',
     version: '1.0.8',
     desc: "- Ao inserir observação no modo Manutenção o texto aparecerá no card e no histórico"
   },
@@ -468,7 +473,7 @@ function App() {
                   onClick={() => setShowChangelog(true)}
                   className="text-xs text-gray-400 mt-2 md:mt-0 md:absolute md:right-0 hover:text-metro-blue transition-colors focus:outline-none"
                 >
-                   Versão: 1.0.8
+                   Versão: 1.0.9
                 </button>
             </div>
             {/* Connection Status Line */}
