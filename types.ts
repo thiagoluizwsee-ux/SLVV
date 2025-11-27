@@ -30,6 +30,7 @@ export interface Vehicle {
   lastUpdate: string; // ISO Date string
   status: VehicleStatus;
   registration: string; // Unique record ID (incremental or uuid)
+  observation?: string;
 }
 
 export interface HistoryLog {
@@ -43,15 +44,6 @@ export interface HistoryLog {
   details?: string;
   registration?: string;
   _rowId?: string; // Optional field to store Supabase Primary Key
-}
-
-// Supabase Types for Global Window Object
-declare global {
-  interface Window {
-    supabase: {
-      createClient: (url: string, key: string) => any;
-    };
-  }
 }
 
 export type DataMode = 'LOCAL' | 'CLOUD';
