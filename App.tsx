@@ -1,5 +1,4 @@
 
-
 import React, { useState, useEffect } from 'react';
 import { MetroLogo } from './components/MetroLogo';
 import { AVAILABLE_LOCATIONS } from './constants';
@@ -10,15 +9,10 @@ import { HistoryView } from './components/HistoryView';
 import { initDataService, getVehicles, getHistory, saveVehicle, addHistoryLog } from './services/dataService';
 
 const CHANGELOG = [
-  {
-    date: '26/11/2025',
-    version: '1.0.7',
-    desc: "- Modificado texto nos cards de 'Pos:' para 'Posição de Entrada:'\n- Corrigido erro ao buscar veículos com posições nos Ramais 5 e 6\n- Adicionado campo opcional 'Observação' ao clicar em 'Manutenção' e 'Finalizar Manutenção'"
-  },
   { 
     date: '26/11/2025', 
     version: '1.0.6', 
-    desc: "- Atualizado modo manutenção:\n- Ao clicar em 'Manutenção' e 'Finalizar Manutenção' inserir dados de Nome e Registro\n- Inseridas ações 'Liberado' e 'Retido' com identidades visuais ao alterar para modo 'Manutenção'\n- Ao Finalizar Manutenção a localização do veículo passa a ser PAT" 
+    desc: "Atualizado modo manutenção:\n- Ao clicar em 'Manutenção' e 'Finalizar Manutenção' inserir dados de Nome e Registro\n- Inseridas ações 'Liberado' e 'Retido' com identidades visuais ao alterar para modo 'Manutenção'\n- Ao Finalizar Manutenção a localização do veículo passa a ser PAT" 
   },
   { date: '26/11/2025', version: '1.0.5', desc: "Adicionado campo 'Posição de Entrada' ao selecionar as localizações: Ramal 5 ou Ramal 6" },
   { date: '25/11/2025', version: '1.0.4', desc: "Adicionadas descrições ao lado dos Veículos" },
@@ -121,7 +115,7 @@ function App() {
     }
   };
 
-  const handleStatusChange = async (vehicleId: string, operator: string, registration: string, observation: string) => {
+  const handleStatusChange = async (vehicleId: string, operator: string, registration: string) => {
      const updatedVehicles = vehicles.map(v => {
       if (v.id === vehicleId) {
         const isEnteringMaintenance = v.status === VehicleStatus.OPERATION;
@@ -148,8 +142,7 @@ function App() {
           lastLocation: lastLocation,
           operator: operator,
           registration: registration,
-          lastUpdate: new Date().toISOString(),
-          observation: observation
+          lastUpdate: new Date().toISOString()
         };
       }
       return v;
@@ -169,10 +162,6 @@ function App() {
              details += ` (Movido para ${LocationEnum.OFICINA})`;
         } else {
              details += ` (Movido para ${LocationEnum.PAT})`;
-        }
-        
-        if (observation && observation.trim() !== '') {
-            details += ` - Obs: ${observation}`;
         }
 
         const log: HistoryLog = {
@@ -223,11 +212,7 @@ function App() {
         normalizedLocation.includes(normalizedSearch) ||
         normalizedRegistration.includes(normalizedSearch);
       
-      // Update: Handle partial matches for Ramal 5 and Ramal 6 to include positions
-      const matchesFilter = filterLocation === 'ALL' || 
-        ((filterLocation === LocationEnum.RAMAL_5 || filterLocation === LocationEnum.RAMAL_6)
-            ? vehicle.currentLocation.startsWith(filterLocation)
-            : vehicle.currentLocation === filterLocation);
+      const matchesFilter = filterLocation === 'ALL' || vehicle.currentLocation === filterLocation;
 
       return matchesSearch && matchesFilter;
     })
@@ -456,7 +441,7 @@ function App() {
                   onClick={() => setShowChangelog(true)}
                   className="text-xs text-gray-400 mt-2 md:mt-0 md:absolute md:right-0 hover:text-metro-blue transition-colors focus:outline-none"
                 >
-                   Versão: 1.0.7
+                   Versão: 1.0.6
                 </button>
             </div>
             {/* Connection Status Line */}

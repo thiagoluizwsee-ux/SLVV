@@ -1,5 +1,4 @@
 
-import { createClient } from "@supabase/supabase-js";
 import { INITIAL_VEHICLES, SUPABASE_KEY, SUPABASE_URL } from "../constants";
 import { DataMode, HistoryLog, Vehicle } from "../types";
 
@@ -7,9 +6,9 @@ let supabaseClient: any = null;
 let currentMode: DataMode = 'LOCAL';
 
 export const initDataService = (): DataMode => {
-  if (SUPABASE_URL && SUPABASE_KEY) {
+  if (SUPABASE_URL && SUPABASE_KEY && window.supabase) {
     try {
-      supabaseClient = createClient(SUPABASE_URL, SUPABASE_KEY);
+      supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
       currentMode = 'CLOUD';
       console.log("Conectado ao Supabase (Modo Nuvem)");
     } catch (error) {

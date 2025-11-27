@@ -5,13 +5,12 @@ import { OPERATOR_REGISTRY } from '../constants';
 interface Props {
   vehicle: Vehicle;
   onClose: () => void;
-  onConfirm: (vehicleId: string, operator: string, registration: string, observation: string) => void;
+  onConfirm: (vehicleId: string, operator: string, registration: string) => void;
 }
 
 export const StatusModal: React.FC<Props> = ({ vehicle, onClose, onConfirm }) => {
   const [operatorName, setOperatorName] = useState('');
   const [registration, setRegistration] = useState('');
-  const [observation, setObservation] = useState('');
 
   const isEnteringMaintenance = vehicle.status === VehicleStatus.OPERATION;
   const targetStatus = isEnteringMaintenance ? VehicleStatus.MAINTENANCE : VehicleStatus.OPERATION;
@@ -85,7 +84,7 @@ export const StatusModal: React.FC<Props> = ({ vehicle, onClose, onConfirm }) =>
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (operatorName.trim() === '' || registration.trim() === '') return;
-    onConfirm(vehicle.id, operatorName, registration, observation);
+    onConfirm(vehicle.id, operatorName, registration);
   };
 
   return (
@@ -151,21 +150,6 @@ export const StatusModal: React.FC<Props> = ({ vehicle, onClose, onConfirm }) =>
                 ))}
               </datalist>
             </div>
-          </div>
-
-          {/* Observation Field */}
-          <div>
-            <label htmlFor="observation" className="block text-sm font-medium text-gray-700 mb-1">
-              Observação
-            </label>
-            <input
-              type="text"
-              id="observation"
-              className="w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-metro-blue focus:border-metro-blue bg-white"
-              value={observation}
-              onChange={(e) => setObservation(e.target.value)}
-              placeholder="Inserir observação (opcional)"
-            />
           </div>
 
           <div className="flex justify-end space-x-3 mt-6">
