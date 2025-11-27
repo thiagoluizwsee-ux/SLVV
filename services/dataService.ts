@@ -9,9 +9,16 @@ let currentMode: DataMode = 'LOCAL';
 export const initDataService = (): DataMode => {
   if (SUPABASE_URL && SUPABASE_KEY) {
     try {
-      supabaseClient = createClient(SUPABASE_URL, SUPABASE_KEY);
+      // Configuração explícita para evitar uso de localStorage/cookies que o Firefox pode bloquear
+      supabaseClient = createClient(SUPABASE_URL, SUPABASE_KEY, {
+        auth: {
+          persistSession: false,
+          autoRefreshToken: false,
+          detectSessionInUrl: false
+        }
+      });
       currentMode = 'CLOUD';
-      console.log("Conectado ao Supabase (Modo Nuvem)");
+      console.log("Conectado ao Supabase (Modo Nuvem - Sem Persistência)");
     } catch (error) {
       console.error("Falha ao conectar Supabase, revertendo para local:", error);
       currentMode = 'LOCAL';
@@ -55,27 +62,23 @@ export const getVehicles = async (): Promise<Vehicle[]> => {
         }
         return merged;
       } else {
+        // Se a tabela estiver vazia na nuvem, inicializa com os dados locais/padrão
         for (const v of INITIAL_VEHICLES) {
             await saveVehicle(v);
         }
         return INITIAL_VEHICLES;
       }
     } catch (err: any) {
-      console.error("Erro nuvem:", err);
+      console.error("Erro nuvem (getVehicles):", err);
+      // Fallback silencioso para local em caso de erro de rede momentâneo
+      return getLocalVehiclesData();
     }
   }
   return getLocalVehiclesData();
 };
 
 export const saveVehicle = async (vehicle: Vehicle) => {
-  if (currentMode === 'CLOUD' && supabaseClient) {
-    try {
-      await supabaseClient.from('vehicles').upsert({ id: vehicle.id, data: vehicle });
-    } catch (err) {
-      console.error("Erro saveVehicle:", err);
-    }
-  }
-  
+  // Salvar Localmente (Backup/Instantâneo)
   const saved = localStorage.getItem('metro_vehicles');
   let vehicles = saved ? JSON.parse(saved) : INITIAL_VEHICLES;
   const index = vehicles.findIndex((v: Vehicle) => v.id === vehicle.id);
@@ -85,6 +88,15 @@ export const saveVehicle = async (vehicle: Vehicle) => {
     vehicles.push(vehicle);
   }
   localStorage.setItem('metro_vehicles', JSON.stringify(vehicles));
+
+  // Salvar na Nuvem
+  if (currentMode === 'CLOUD' && supabaseClient) {
+    try {
+      await supabaseClient.from('vehicles').upsert({ id: vehicle.id, data: vehicle });
+    } catch (err) {
+      console.error("Erro saveVehicle Supabase:", err);
+    }
+  }
 };
 
 // ============================================================================
@@ -92,7 +104,7 @@ export const saveVehicle = async (vehicle: Vehicle) => {
 // ============================================================================
 
 export const getHistory = async (): Promise<HistoryLog[]> => {
-    // 1. Local Load (Always fast)
+    // 1. Local Load (Always fast fallback)
     const localSaved = localStorage.getItem('metro_history');
     let localLogs = localSaved ? JSON.parse(localSaved) : [];
 
@@ -115,6 +127,8 @@ export const getHistory = async (): Promise<HistoryLog[]> => {
                 // Update Local Cache with Cloud Data
                 localStorage.setItem('metro_history', JSON.stringify(cloudLogs));
                 return cloudLogs;
+            } else if (error) {
+                console.error("Erro getHistory API:", error);
             }
         } catch (err) {
             console.error("Erro getHistory Cloud:", err);
