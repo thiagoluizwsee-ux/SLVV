@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect } from 'react';
 import { MetroLogo } from './components/MetroLogo';
 import { AVAILABLE_LOCATIONS } from './constants';
@@ -147,7 +148,8 @@ function App() {
           lastLocation: lastLocation,
           operator: operator,
           registration: registration,
-          lastUpdate: new Date().toISOString()
+          lastUpdate: new Date().toISOString(),
+          observation: observation
         };
       }
       return v;
