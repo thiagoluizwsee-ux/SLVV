@@ -39,7 +39,9 @@ export const UpdateModal: React.FC<Props> = ({ vehicle, onClose, onUpdate, curre
   const knownRegistrations = Object.values(OPERATOR_REGISTRY);
 
   const showEntryPosition = selectedLocation === LocationEnum.RAMAL_5 || selectedLocation === LocationEnum.RAMAL_6 || selectedLocation === LocationEnum.ECL_3 || selectedLocation === LocationEnum.ECL_4;
-  const entryPositions = ['1°', '2°', '3°', '4°', '5°'];
+  const entryPositions = (selectedLocation === LocationEnum.ECL_3 || selectedLocation === LocationEnum.ECL_4) 
+    ? ['1°', '2°', '3°', '4°', '5°', 'Estacionamento'] 
+    : ['1°', '2°', '3°', '4°', '5°'];
 
   // Clear entry position if switching to a location that doesn't support it
   useEffect(() => {
