@@ -19,7 +19,7 @@ export const UpdateModal: React.FC<Props> = ({ vehicle, onClose, onUpdate, curre
     const pos = parts[1] || '';
     
     // If the base matches a known entry location, return split values
-    if (base === LocationEnum.RAMAL_5 || base === LocationEnum.RAMAL_6) {
+    if (base === LocationEnum.RAMAL_5 || base === LocationEnum.RAMAL_6 || base === LocationEnum.ECL_3 || base === LocationEnum.ECL_4) {
         return { base: base as LocationEnum, pos };
     }
     // Otherwise return original as base
@@ -38,7 +38,7 @@ export const UpdateModal: React.FC<Props> = ({ vehicle, onClose, onUpdate, curre
   const knownOperators = Object.keys(OPERATOR_REGISTRY);
   const knownRegistrations = Object.values(OPERATOR_REGISTRY);
 
-  const showEntryPosition = selectedLocation === LocationEnum.RAMAL_5 || selectedLocation === LocationEnum.RAMAL_6;
+  const showEntryPosition = selectedLocation === LocationEnum.RAMAL_5 || selectedLocation === LocationEnum.RAMAL_6 || selectedLocation === LocationEnum.ECL_3 || selectedLocation === LocationEnum.ECL_4;
   const entryPositions = ['1°', '2°', '3°', '4°', '5°'];
 
   // Clear entry position if switching to a location that doesn't support it
