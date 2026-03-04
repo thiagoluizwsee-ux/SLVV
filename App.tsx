@@ -9,6 +9,11 @@ import { initDataService, getVehicles, getHistory, saveVehicle, addHistoryLog } 
 
 const CHANGELOG = [
   {
+    date: '04/03/2026',
+    version: '1.1.0',
+    desc: "- Adicionado campo 'Posição de Entrada' para as localizações ECL 3 e ECL 4"
+  },
+  {
     date: '27/11/2025',
     version: '1.0.9',
     desc: "- Redimensionamento do tamanho dos cards"
@@ -231,9 +236,9 @@ function App() {
         normalizedLocation.includes(normalizedSearch) ||
         normalizedRegistration.includes(normalizedSearch);
       
-      // Update: Handle partial matches for Ramal 5 and Ramal 6 to include positions
+      // Update: Handle partial matches for Ramal 5, Ramal 6, ECL 3 and ECL 4 to include positions
       const matchesFilter = filterLocation === 'ALL' || 
-        ((filterLocation === LocationEnum.RAMAL_5 || filterLocation === LocationEnum.RAMAL_6)
+        ((filterLocation === LocationEnum.RAMAL_5 || filterLocation === LocationEnum.RAMAL_6 || filterLocation === LocationEnum.ECL_3 || filterLocation === LocationEnum.ECL_4)
             ? vehicle.currentLocation.startsWith(filterLocation)
             : vehicle.currentLocation === filterLocation);
 
@@ -378,7 +383,13 @@ function App() {
                     <p className={`text-xs uppercase tracking-wide ${isMaintenance ? 'text-red-500' : 'text-gray-500'}`}>Local Atual</p>
                     <p className={`text-lg font-bold ${isMaintenance ? 'text-red-700' : 'text-gray-900'}`}>
                       {(() => {
-                        if (vehicle.currentLocation.startsWith('Ramal 5 - ') || vehicle.currentLocation.startsWith('Ramal 6 - ')) {
+                        const hasPosition = 
+                          vehicle.currentLocation.startsWith('Ramal 5 - ') || 
+                          vehicle.currentLocation.startsWith('Ramal 6 - ') ||
+                          vehicle.currentLocation.startsWith('ECL 3 - ') ||
+                          vehicle.currentLocation.startsWith('ECL 4 - ');
+
+                        if (hasPosition) {
                           const [base, pos] = vehicle.currentLocation.split(' - ');
                           return (
                             <span>
@@ -473,7 +484,7 @@ function App() {
                   onClick={() => setShowChangelog(true)}
                   className="text-xs text-gray-400 mt-2 md:mt-0 md:absolute md:right-0 hover:text-metro-blue transition-colors focus:outline-none"
                 >
-                   Versão: 1.0.9
+                   Versão: 1.1.0
                 </button>
             </div>
             {/* Connection Status Line */}
