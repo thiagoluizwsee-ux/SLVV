@@ -11,7 +11,7 @@ const CHANGELOG = [
   {
     date: '04/03/2026',
     version: '1.1.0',
-    desc: "- Adicionado campo 'Posição de Entrada' para as localizações ECL 3 e ECL 4"
+    desc: "- Adicionado campo 'Posição de Entrada' para as localizações ECL 3 e ECL 4\n- Adicionada opção 'Estacionamento' na Posição de Entrada para ECL 3 e ECL 4"
   },
   {
     date: '27/11/2025',
